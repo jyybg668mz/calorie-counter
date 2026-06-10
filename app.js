@@ -154,38 +154,68 @@ function closeSearch() {
 }
 
 // ---- Food search (via Worker proxy to USDA FoodData Central) ----
+//
+// USDA does whole-word matching, so "ban" finds nothing while "banana"
+// works. To get typeahead, we turn the word being typed into a prefix
+// search ("ban" -> "ban*"). USDA's wildcard search is flaky (it randomly
+// returns HTTP 400 on the exact same query), so we retry a couple times,
+// then fall back to a plain whole-word search if the wildcard won't take.
 async function runSearch(query) {
-  const url = FOOD_API + "?query=" + encodeURIComponent(query);
+  const q = query.trim();
+  const tokens = q.split(/\s+/);
+  const wildcard = tokens
+    .map((t, i) => (i === tokens.length - 1 ? t + "*" : t))
+    .join(" ");
 
   try {
-    const res = await fetch(url);
-    if (res.status === 403) {
-      searchStatus.textContent = "Search is temporarily unavailable. Try again later.";
-      searchResults.innerHTML = "";
-      return;
+    let result = await searchOnce(wildcard);
+    let tries = 0;
+    while (result === "retry" && tries < 2) {
+      result = await searchOnce(wildcard);
+      tries++;
     }
-    if (res.status === 429) {
-      searchStatus.textContent = "Hit the hourly search limit. Try again in a bit.";
-      searchResults.innerHTML = "";
-      return;
-    }
-    if (!res.ok) throw new Error("HTTP " + res.status);
-    const data = await res.json();
-    const items = (data.foods || [])
-      .map(parseFood)
-      .filter((p) => p && p.kcal100 != null && p.name);
+    if (result === "retry") result = await searchOnce(q); // fall back to plain
+    if (result === "retry") result = []; // even plain misbehaved: treat as empty
 
-    if (items.length === 0) {
-      searchStatus.textContent = "No results with calorie data. Try another term.";
-      searchResults.innerHTML = "";
+    if (result === "limit") {
+      setStatus("Hit the hourly search limit. Try again in a bit.");
+      return;
+    }
+    if (result === "unavailable") {
+      setStatus("Search is temporarily unavailable. Try again later.");
+      return;
+    }
+    if (!Array.isArray(result)) throw new Error("search failed");
+
+    if (result.length === 0) {
+      setStatus("No results with calorie data. Try another term.");
       return;
     }
     searchStatus.textContent = "";
-    renderResults(items);
+    renderResults(result);
   } catch (e) {
-    searchStatus.textContent = "Couldn't reach the food database. Check your connection.";
-    searchResults.innerHTML = "";
+    setStatus("Couldn't reach the food database. Check your connection.");
   }
+}
+
+// One request to the proxy. Returns an array of foods on success, or a
+// string code: "retry" (flaky 400), "limit" (rate limited), "unavailable"
+// (proxy/key problem). Throws on network failure.
+async function searchOnce(query) {
+  const res = await fetch(FOOD_API + "?query=" + encodeURIComponent(query));
+  if (res.status === 400) return "retry";
+  if (res.status === 429) return "limit";
+  if (res.status === 403) return "unavailable";
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  const data = await res.json();
+  return (data.foods || [])
+    .map(parseFood)
+    .filter((p) => p && p.kcal100 != null && p.name);
+}
+
+function setStatus(msg) {
+  searchStatus.textContent = msg;
+  searchResults.innerHTML = "";
 }
 
 function parseFood(f) {
