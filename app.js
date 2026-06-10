@@ -192,6 +192,15 @@ async function runSearch(query) {
       return;
     }
     searchStatus.textContent = "";
+
+    // USDA returns everything containing the word in no useful order, so a
+    // plain "coffee" can land far below "coffee cake" etc. Re-rank so the
+    // most generic, closest match floats to the top.
+    const lastToken = tokens[tokens.length - 1].toLowerCase();
+    result.sort((a, b) =>
+      scoreResult(b, q.toLowerCase(), lastToken) -
+      scoreResult(a, q.toLowerCase(), lastToken));
+
     renderResults(result);
   } catch (e) {
     setStatus("Couldn't reach the food database. Check your connection.");
@@ -216,6 +225,23 @@ async function searchOnce(query) {
 function setStatus(msg) {
   searchStatus.textContent = msg;
   searchResults.innerHTML = "";
+}
+
+// Relevance score for a search result (higher = shown first). Favors names
+// that begin with what was typed, an exact whole-word hit, the matched word
+// appearing early, and shorter (more generic) names — so plain "Coffee"
+// outranks "Cake, coffee" or "Ice cream, coffee".
+function scoreResult(item, query, lastToken) {
+  const name = (item.name || "").toLowerCase();
+  const words = name.split(/[\s,]+/).filter(Boolean);
+  let score = 0;
+  if (name.startsWith(query)) score += 1000;
+  if (words.includes(lastToken)) score += 200;
+  let wi = words.findIndex((w) => w.startsWith(lastToken));
+  if (wi === -1) wi = words.length;
+  score += Math.max(0, 100 - wi * 20); // earlier match = better
+  score -= name.length;                // shorter = more generic
+  return score;
 }
 
 function parseFood(f) {
