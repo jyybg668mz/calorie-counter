@@ -1,5 +1,10 @@
 "use strict";
 
+// ---- Config ----
+// USDA FoodData Central API key. Get a free one at:
+// https://fdc.nal.usda.gov/api-key-signup.html
+const USDA_API_KEY = "WGlFL6hwKXbARZCGfvK4172pMpvhNur8lWtMgQi9";
+
 // ---- State ----
 let currentDate = startOfToday();
 
@@ -126,20 +131,30 @@ function closeSearch() {
   searchOverlay.classList.add("hidden");
 }
 
-// ---- Open Food Facts API ----
+// ---- USDA FoodData Central API ----
 async function runSearch(query) {
   const url =
-    "https://world.openfoodfacts.org/cgi/search.pl?search_terms=" +
-    encodeURIComponent(query) +
-    "&search_simple=1&action=process&json=1&page_size=25" +
-    "&fields=code,product_name,brands,nutriments,serving_size";
+    "https://api.nal.usda.gov/fdc/v1/foods/search?api_key=" + USDA_API_KEY +
+    "&query=" + encodeURIComponent(query) +
+    "&pageSize=25" +
+    "&dataType=" + encodeURIComponent("Foundation,SR Legacy,Survey (FNDDS)");
 
   try {
     const res = await fetch(url);
+    if (res.status === 403) {
+      searchStatus.textContent = "API key missing or invalid. Check USDA_API_KEY in app.js.";
+      searchResults.innerHTML = "";
+      return;
+    }
+    if (res.status === 429) {
+      searchStatus.textContent = "Hit the hourly search limit. Try again in a bit.";
+      searchResults.innerHTML = "";
+      return;
+    }
     if (!res.ok) throw new Error("HTTP " + res.status);
     const data = await res.json();
-    const items = (data.products || [])
-      .map(parseProduct)
+    const items = (data.foods || [])
+      .map(parseFood)
       .filter((p) => p && p.kcal100 != null && p.name);
 
     if (items.length === 0) {
@@ -155,20 +170,32 @@ async function runSearch(query) {
   }
 }
 
-function parseProduct(p) {
-  if (!p || !p.nutriments) return null;
-  const n = p.nutriments;
-  let kcal100 = numOrNull(n["energy-kcal_100g"]);
-  if (kcal100 == null && n["energy_100g"] != null) {
-    // energy_100g is usually kJ
-    kcal100 = numOrNull(n["energy_100g"]);
-    if (kcal100 != null) kcal100 = kcal100 / 4.184;
+function parseFood(f) {
+  if (!f) return null;
+  const nutrients = f.foodNutrients || [];
+  let kcal100 = null;
+  for (const n of nutrients) {
+    if ((n.nutrientName || "").toLowerCase() === "energy" &&
+        (n.unitName || "").toUpperCase() === "KCAL") {
+      kcal100 = numOrNull(n.value);
+      break;
+    }
+  }
+  if (kcal100 == null) {
+    for (const n of nutrients) {
+      if ((n.nutrientName || "").toLowerCase() === "energy" &&
+          (n.unitName || "").toUpperCase() === "KJ") {
+        const v = numOrNull(n.value);
+        if (v != null) kcal100 = v / 4.184;
+        break;
+      }
+    }
   }
   return {
-    name: (p.product_name || "").trim(),
-    brand: (p.brands || "").split(",")[0].trim(),
+    name: (f.description || "").trim(),
+    brand: (f.brandName || f.brandOwner || "").trim(),
     kcal100,
-    serving: p.serving_size || "",
+    serving: "",
   };
 }
 

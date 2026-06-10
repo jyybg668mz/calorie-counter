@@ -1,4 +1,4 @@
-const CACHE = "calorie-counter-v1";
+const CACHE = "calorie-counter-v2";
 const ASSETS = [
   "./",
   "./index.html",
@@ -28,7 +28,7 @@ self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
   // Never cache the food database API — always go to network.
-  if (url.hostname.endsWith("openfoodfacts.org")) {
+  if (url.hostname === "api.nal.usda.gov") {
     return; // let the browser handle it normally
   }
 
