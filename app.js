@@ -164,14 +164,10 @@ function showRecents() {
 }
 
 // ---- Progress ring ----
-const RING_CIRCUMFERENCE = 2 * Math.PI * 54; // r=54 in the SVG
-ringProgressEl.style.strokeDasharray = RING_CIRCUMFERENCE;
-
 function updateRing(total) {
   const pct = Math.min(total / CALORIE_GOAL, 1);
-  ringProgressEl.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
+  ringProgressEl.style.setProperty("--p", pct);
   const over = total > CALORIE_GOAL;
-  ringProgressEl.classList.toggle("over", over);
   totalKcalEl.parentElement.classList.toggle("over", over);
 }
 

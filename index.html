@@ -21,16 +21,10 @@
       <button id="nextDay" class="ghost-btn" aria-label="Next day">›</button>
     </div>
     <div class="ring-wrap">
-      <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
-        <defs>
-          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
-            <stop offset="0%" stop-color="#fb7185" />
-            <stop offset="100%" stop-color="#f97316" />
-          </linearGradient>
-        </defs>
-        <circle class="ring-track" cx="60" cy="60" r="54" />
-        <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="54" />
-      </svg>
+      <div class="ring-track2" aria-hidden="true"></div>
+      <div class="ring-clip" aria-hidden="true">
+        <div class="ring-fill" id="ringProgress"></div>
+      </div>
       <div class="ring-center">
         <span class="total-num" id="totalKcal">0</span>
         <span class="total-goal" id="totalGoal">of 2,000 kcal</span>

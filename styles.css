@@ -63,28 +63,43 @@ body {
   margin: 4px auto 0;
 }
 
-.ring {
-  width: 100%;
-  height: 100%;
-  transform: rotate(-90deg);
+/* Stoplight ombre ring: a conic gradient (green -> orange -> red) anchored
+   to the angle around the circle, masked into a ring shape. The colors stay
+   in place; the fill (--p, 0..1) just reveals more of them as the day fills. */
+@property --p {
+  syntax: "<number>";
+  inherits: false;
+  initial-value: 0;
 }
 
-.ring-track {
-  fill: none;
-  stroke: var(--surface-2);
-  stroke-width: 10;
+.ring-track2,
+.ring-clip,
+.ring-fill {
+  position: absolute;
+  inset: 0;
+  border-radius: 50%;
 }
 
-.ring-progress {
-  fill: none;
-  stroke: url(#ringGrad);
-  stroke-width: 10;
-  stroke-linecap: round;
-  transition: stroke-dashoffset 0.5s ease, stroke 0.3s ease;
+/* Both the track and the progress live inside a ring-shaped (annulus) mask.
+   The clip carves the ring hole; the fill just paints + reveals the arc.
+   Keeping the annulus mask on a parent means each element needs only one
+   mask layer, so we never depend on mask-composite (flaky in some engines). */
+.ring-track2,
+.ring-clip {
+  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 14px), #000 calc(100% - 14px));
+  mask: radial-gradient(farthest-side, transparent calc(100% - 14px), #000 calc(100% - 14px));
 }
 
-.ring-progress.over {
-  stroke: var(--over);
+.ring-track2 {
+  background: var(--surface-2);
+}
+
+.ring-fill {
+  --p: 0;
+  background: conic-gradient(from 0deg, #22c55e 0deg, #f97316 180deg, #ef4444 352deg);
+  -webkit-mask: conic-gradient(from 0deg, #000 0deg calc(var(--p) * 360deg), transparent calc(var(--p) * 360deg) 360deg);
+  mask: conic-gradient(from 0deg, #000 0deg calc(var(--p) * 360deg), transparent calc(var(--p) * 360deg) 360deg);
+  transition: --p 0.5s ease;
 }
 
 .ring-center {
