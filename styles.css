@@ -283,6 +283,19 @@ body {
   white-space: nowrap;
 }
 
+.fav-btn {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 20px;
+  line-height: 1;
+  padding: 2px 4px;
+  margin: -2px -4px -2px 0;
+  cursor: pointer;
+  flex-shrink: 0;
+}
+.fav-btn.on { color: #f59e0b; }
+
 .result-add {
   display: none;
   margin-top: 12px;

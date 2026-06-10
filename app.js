@@ -35,8 +35,7 @@ searchInput.addEventListener("input", () => {
   clearTimeout(searchTimer);
   const q = searchInput.value.trim();
   if (q.length < 2) {
-    searchResults.innerHTML = "";
-    searchStatus.textContent = "Type at least 2 characters.";
+    showRecents();
     return;
   }
   searchStatus.textContent = "Searching…";
@@ -80,6 +79,88 @@ function deleteEntry(id) {
   const entries = loadEntries(currentDate).filter((e) => e.id !== id);
   saveEntries(currentDate, entries);
   render();
+}
+
+// ---- Recent / favorite foods ----
+// Most days you eat the same things, so we remember every food you add and
+// offer it for one-tap re-adding — no search needed. Stored as a single
+// list under "cc:foods"; favorites are pinned to the top and never aged out.
+const RECENTS_KEY = "cc:foods";
+const RECENTS_MAX = 30; // non-favorites kept, most-recent first
+
+function loadFoods() {
+  try {
+    return JSON.parse(localStorage.getItem(RECENTS_KEY)) || [];
+  } catch (e) {
+    return [];
+  }
+}
+function saveFoods(foods) {
+  localStorage.setItem(RECENTS_KEY, JSON.stringify(foods));
+}
+function foodKey(item) {
+  return [
+    (item.name || "").toLowerCase().trim(),
+    (item.brand || "").toLowerCase().trim(),
+    Math.round(item.kcal100 || 0),
+  ].join("|");
+}
+function recordFood(item) {
+  if (item.kcal100 == null) return;
+  const foods = loadFoods();
+  const key = foodKey(item);
+  let f = foods.find((x) => x.key === key);
+  if (f) {
+    f.count = (f.count || 1) + 1;
+    f.lastUsed = Date.now();
+  } else {
+    foods.push({
+      key,
+      name: item.name,
+      brand: item.brand || "",
+      kcal100: item.kcal100,
+      count: 1,
+      lastUsed: Date.now(),
+      fav: false,
+    });
+  }
+  pruneFoods(foods);
+  saveFoods(foods);
+}
+function pruneFoods(foods) {
+  const overflow = foods
+    .filter((f) => !f.fav)
+    .sort((a, b) => b.lastUsed - a.lastUsed)
+    .slice(RECENTS_MAX);
+  const drop = new Set(overflow.map((f) => f.key));
+  for (let i = foods.length - 1; i >= 0; i--) {
+    if (drop.has(foods[i].key)) foods.splice(i, 1);
+  }
+}
+function toggleFav(key) {
+  const foods = loadFoods();
+  const f = foods.find((x) => x.key === key);
+  if (!f) return;
+  f.fav = !f.fav;
+  saveFoods(foods);
+  showRecents();
+}
+function sortedFoods() {
+  return loadFoods().sort((a, b) => {
+    if (!!b.fav !== !!a.fav) return (b.fav ? 1 : 0) - (a.fav ? 1 : 0);
+    return b.lastUsed - a.lastUsed;
+  });
+}
+// Shown in the search overlay when nothing has been typed yet.
+function showRecents() {
+  const foods = sortedFoods();
+  if (foods.length === 0) {
+    searchResults.innerHTML = "";
+    searchStatus.textContent = "Type at least 2 characters to search.";
+    return;
+  }
+  searchStatus.textContent = "Recent foods";
+  renderResults(foods, { recents: true });
 }
 
 // ---- Progress ring ----
@@ -145,8 +226,7 @@ function render() {
 function openSearch() {
   searchOverlay.classList.remove("hidden");
   searchInput.value = "";
-  searchResults.innerHTML = "";
-  searchStatus.textContent = "Type at least 2 characters.";
+  showRecents();
   setTimeout(() => searchInput.focus(), 50);
 }
 function closeSearch() {
@@ -278,7 +358,8 @@ function numOrNull(v) {
   return isFinite(n) ? n : null;
 }
 
-function renderResults(items) {
+function renderResults(items, opts) {
+  opts = opts || {};
   searchResults.innerHTML = "";
   for (const item of items) {
     const card = document.createElement("div");
@@ -290,6 +371,7 @@ function renderResults(items) {
           <div class="result-sub"></div>
         </div>
         <div class="result-per">${Math.round(item.kcal100)} kcal/100g</div>
+        ${opts.recents ? '<button class="fav-btn" aria-label="Favorite">' + (item.fav ? "★" : "☆") + "</button>" : ""}
       </div>
       <div class="result-add">
         <div class="amount-field">
@@ -317,9 +399,19 @@ function renderResults(items) {
       card.classList.toggle("open");
     });
 
+    if (opts.recents) {
+      const favBtn = card.querySelector(".fav-btn");
+      if (item.fav) favBtn.classList.add("on");
+      favBtn.addEventListener("click", (ev) => {
+        ev.stopPropagation();
+        toggleFav(item.key);
+      });
+    }
+
     card.querySelector(".confirm-add").addEventListener("click", (ev) => {
       ev.stopPropagation();
       const grams = Math.max(1, Math.round(parseFloat(amountInput.value) || 0));
+      recordFood(item); // remember it for next time (and bump recency)
       addEntry({
         id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
         name: item.name,
