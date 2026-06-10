@@ -193,6 +193,7 @@ function render() {
   totalKcalEl.textContent = Math.round(total);
   totalGoalEl.textContent = "of " + CALORIE_GOAL.toLocaleString() + " kcal";
   updateRing(total);
+  scheduleSync(); // keep shared total fresh (no-op unless sharing is on)
 
   entryListEl.innerHTML = "";
   if (entries.length === 0) {
@@ -423,6 +424,253 @@ function renderResults(items, opts) {
     });
 
     searchResults.appendChild(card);
+  }
+}
+
+// ---- Accountability (share codes) ----
+//
+// Opt-in only: nothing leaves the device until you enable sharing. Your
+// secret account id (the write key) stays on your phone; friends only ever
+// get a short share code that lets them READ your daily total + streak.
+const SYNC_API = FOOD_API + "share/"; // .../share/sync , .../share/peek
+const ACCOUNT_KEY = "cc:account";     // { userId, code, name }
+const FRIENDS_KEY = "cc:friends";     // [ "CODE1", "CODE2", ... ]
+
+const friendsOverlay = document.getElementById("friendsOverlay");
+const friendsBody = document.getElementById("friendsBody");
+document.getElementById("friendsBtn").addEventListener("click", openFriends);
+document.getElementById("closeFriends")
+  .addEventListener("click", () => friendsOverlay.classList.add("hidden"));
+
+function getAccount() {
+  try { return JSON.parse(localStorage.getItem(ACCOUNT_KEY)); }
+  catch (e) { return null; }
+}
+function setAccount(a) { localStorage.setItem(ACCOUNT_KEY, JSON.stringify(a)); }
+function getFriends() {
+  try { return JSON.parse(localStorage.getItem(FRIENDS_KEY)) || []; }
+  catch (e) { return []; }
+}
+function setFriends(f) { localStorage.setItem(FRIENDS_KEY, JSON.stringify(f)); }
+
+function randomId() {
+  const bytes = crypto.getRandomValues(new Uint8Array(18));
+  return Array.from(bytes, (b) => b.toString(16).padStart(2, "0")).join("");
+}
+function todayTotal() {
+  const entries = loadEntries(startOfToday());
+  return Math.round(entries.reduce((s, e) => s + e.kcal, 0));
+}
+
+// Push today's total to the server. Debounced; safe to call on every change.
+let syncTimer = null;
+function scheduleSync() {
+  if (!getAccount()) return; // not opted in
+  clearTimeout(syncTimer);
+  syncTimer = setTimeout(syncNow, 800);
+}
+async function syncNow() {
+  const acct = getAccount();
+  if (!acct) return;
+  try {
+    const res = await fetch(SYNC_API + "sync", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        userId: acct.userId,
+        name: acct.name || "",
+        goal: CALORIE_GOAL,
+        date: dateKey(startOfToday()),
+        total: todayTotal(),
+      }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.code && data.code !== acct.code) {
+      acct.code = data.code;
+      setAccount(acct);
+      if (!friendsOverlay.classList.contains("hidden")) renderFriends();
+    }
+  } catch (e) { /* offline — will retry on the next change */ }
+}
+
+async function peek(code) {
+  const res = await fetch(
+    SYNC_API + "peek?code=" + encodeURIComponent(code) +
+    "&date=" + dateKey(startOfToday())
+  );
+  if (res.status === 404) return null;
+  if (!res.ok) throw new Error("HTTP " + res.status);
+  return res.json();
+}
+
+function openFriends() {
+  friendsOverlay.classList.remove("hidden");
+  renderFriends();
+}
+
+async function enableSharing(name, btn) {
+  let acct = getAccount();
+  if (!acct) acct = { userId: randomId(), code: "", name: name || "" };
+  else acct.name = name || acct.name;
+  setAccount(acct);
+  if (btn) { btn.disabled = true; btn.textContent = "Enabling…"; }
+  await syncNow();         // creates the server record and returns a code
+  renderFriends();
+}
+
+function escapeAttr(s) {
+  return String(s).replace(/&/g, "&amp;").replace(/"/g, "&quot;").replace(/</g, "&lt;");
+}
+
+function renderFriends() {
+  const acct = getAccount();
+  friendsBody.innerHTML = "";
+
+  // Not opted in yet: intro + enable.
+  if (!acct) {
+    const intro = document.createElement("div");
+    intro.className = "friends-intro";
+    intro.innerHTML = `
+      <p>Keep each other accountable. Turn on sharing to get a short code you
+      can send to a friend — they'll see your daily calorie total and streak,
+      and you can add their code to see theirs.</p>
+      <p class="muted-note">Only your name, daily total, goal, and streak are
+      shared. Your food list stays private on your phone.</p>
+      <label class="field-label">Your name</label>
+      <input id="nameInput" class="text-input" type="text" maxlength="40" placeholder="e.g. Erik" />
+      <button id="enableBtn" class="primary-btn">Enable sharing</button>
+    `;
+    friendsBody.appendChild(intro);
+    intro.querySelector("#enableBtn").addEventListener("click", () => {
+      enableSharing(intro.querySelector("#nameInput").value.trim(),
+        intro.querySelector("#enableBtn"));
+    });
+    return;
+  }
+
+  // Your code + name.
+  const me = document.createElement("div");
+  me.className = "me-card";
+  me.innerHTML = `
+    <div class="field-label">Your share code</div>
+    <div class="code-row">
+      <span class="code" id="myCode">${acct.code || "…"}</span>
+      <button id="copyCode" class="small-btn">Copy</button>
+    </div>
+    <div class="field-label">Your name</div>
+    <div class="code-row">
+      <input id="nameInput" class="text-input" type="text" maxlength="40"
+        value="${escapeAttr(acct.name || "")}" placeholder="Your name" />
+      <button id="saveName" class="small-btn">Save</button>
+    </div>
+  `;
+  friendsBody.appendChild(me);
+  me.querySelector("#copyCode").addEventListener("click", () => {
+    if (!acct.code) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(acct.code);
+    const b = me.querySelector("#copyCode");
+    b.textContent = "Copied";
+    setTimeout(() => { b.textContent = "Copy"; }, 1500);
+  });
+  me.querySelector("#saveName").addEventListener("click", () => {
+    acct.name = me.querySelector("#nameInput").value.trim();
+    setAccount(acct);
+    syncNow();
+    const b = me.querySelector("#saveName");
+    b.textContent = "Saved";
+    setTimeout(() => { b.textContent = "Save"; }, 1500);
+  });
+
+  // Add a friend.
+  const add = document.createElement("div");
+  add.className = "add-friend";
+  add.innerHTML = `
+    <div class="field-label">Add a friend's code</div>
+    <div class="code-row">
+      <input id="friendCode" class="text-input" type="text" maxlength="10"
+        placeholder="e.g. K7QF2M" autocapitalize="characters" autocomplete="off" />
+      <button id="addFriend" class="small-btn">Add</button>
+    </div>
+    <div id="addStatus" class="add-status"></div>
+  `;
+  friendsBody.appendChild(add);
+  add.querySelector("#addFriend").addEventListener("click", () =>
+    addFriend(add.querySelector("#friendCode").value, add.querySelector("#addStatus")));
+
+  // Friends list.
+  const list = document.createElement("div");
+  list.className = "friend-list";
+  list.id = "friendList";
+  friendsBody.appendChild(list);
+
+  refreshFriendStats();
+}
+
+async function addFriend(rawCode, statusEl) {
+  const code = (rawCode || "").trim().toUpperCase().replace(/[^A-Z0-9]/g, "");
+  if (code.length < 4) { statusEl.textContent = "Enter a valid code."; return; }
+  const acct = getAccount();
+  if (acct && acct.code === code) { statusEl.textContent = "That's your own code."; return; }
+  const friends = getFriends();
+  if (friends.includes(code)) { statusEl.textContent = "Already added."; return; }
+  statusEl.textContent = "Checking…";
+  try {
+    const stat = await peek(code);
+    if (!stat) { statusEl.textContent = "No one found with that code."; return; }
+    friends.push(code);
+    setFriends(friends);
+    renderFriends();
+  } catch (e) {
+    statusEl.textContent = "Couldn't reach the server. Try again.";
+  }
+}
+
+function removeFriend(code) {
+  setFriends(getFriends().filter((c) => c !== code));
+  renderFriends();
+}
+
+function refreshFriendStats() {
+  const list = document.getElementById("friendList");
+  if (!list) return;
+  const friends = getFriends();
+  if (friends.length === 0) {
+    list.innerHTML = `<div class="friends-empty">No friends yet. Add a code above to start.</div>`;
+    return;
+  }
+  list.innerHTML = "";
+  for (const code of friends) {
+    const row = document.createElement("div");
+    row.className = "friend";
+    row.innerHTML = `
+      <div class="friend-info">
+        <div class="friend-name">…</div>
+        <div class="friend-sub">Loading…</div>
+      </div>
+      <div class="friend-streak"></div>
+      <button class="friend-del" aria-label="Remove">&#10005;</button>
+    `;
+    row.querySelector(".friend-del").addEventListener("click", () => removeFriend(code));
+    list.appendChild(row);
+
+    peek(code).then((stat) => {
+      const nameEl = row.querySelector(".friend-name");
+      const subEl = row.querySelector(".friend-sub");
+      if (!stat) {
+        nameEl.textContent = code;
+        subEl.textContent = "Not found";
+        return;
+      }
+      nameEl.textContent = stat.name || "Friend";
+      subEl.textContent =
+        stat.total.toLocaleString() + " / " + stat.goal.toLocaleString() + " kcal";
+      subEl.classList.toggle("over", stat.total > stat.goal);
+      row.querySelector(".friend-streak").textContent =
+        stat.streak > 0 ? "🔥 " + stat.streak : "";
+    }).catch(() => {
+      row.querySelector(".friend-sub").textContent = "Couldn't load";
+    });
   }
 }
 

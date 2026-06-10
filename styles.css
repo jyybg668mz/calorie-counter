@@ -342,3 +342,138 @@ body {
   cursor: pointer;
 }
 .confirm-add:active { background: var(--accent-press); }
+
+/* Friends / accountability */
+.corner-btn {
+  position: absolute;
+  top: calc(10px + var(--safe-top));
+  right: 14px;
+  background: var(--surface);
+  border: 1px solid var(--surface-2);
+  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  font-size: 18px;
+  line-height: 1;
+  cursor: pointer;
+  z-index: 6;
+}
+.corner-btn:active { background: var(--surface-2); }
+
+.overlay-title {
+  flex: 1;
+  font-size: 18px;
+  font-weight: 700;
+  padding-left: 6px;
+}
+
+.friends-body {
+  flex: 1;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  padding: 16px 16px calc(24px + var(--safe-bottom));
+}
+
+.friends-intro p { color: var(--text); line-height: 1.5; font-size: 15px; }
+.friends-intro .muted-note { color: var(--muted); font-size: 13px; }
+
+.field-label {
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted);
+  margin: 14px 0 6px;
+}
+
+.text-input {
+  flex: 1;
+  min-width: 0;
+  background: var(--surface);
+  border: 1px solid var(--surface-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  color: var(--text);
+  font-size: 16px;
+  outline: none;
+}
+.text-input:focus { border-color: var(--accent); }
+
+.primary-btn {
+  width: 100%;
+  margin-top: 18px;
+  background: var(--accent);
+  border: none;
+  color: white;
+  font-size: 16px;
+  font-weight: 700;
+  padding: 14px;
+  border-radius: 12px;
+  cursor: pointer;
+}
+.primary-btn:active { background: var(--accent-press); }
+.primary-btn:disabled { opacity: 0.6; }
+
+.code-row { display: flex; align-items: center; gap: 8px; }
+
+.code {
+  flex: 1;
+  background: var(--surface);
+  border: 1px dashed var(--surface-2);
+  border-radius: 10px;
+  padding: 12px 14px;
+  font-size: 22px;
+  font-weight: 800;
+  letter-spacing: 3px;
+  color: var(--accent);
+}
+
+.small-btn {
+  background: var(--surface-2);
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 12px 16px;
+  border-radius: 10px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.small-btn:active { background: var(--accent-press); }
+
+.me-card, .add-friend {
+  border-bottom: 1px solid var(--surface-2);
+  padding-bottom: 18px;
+  margin-bottom: 4px;
+}
+
+.add-status { color: var(--muted); font-size: 13px; margin-top: 8px; min-height: 16px; }
+
+.friend-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+
+.friend {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--surface);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.friend-info { flex: 1; min-width: 0; }
+.friend-name {
+  font-size: 16px;
+  font-weight: 600;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.friend-sub { font-size: 13px; color: var(--muted); margin-top: 2px; }
+.friend-sub.over { color: #f59e0b; }
+.friend-streak { font-size: 15px; font-weight: 700; white-space: nowrap; }
+.friend-del {
+  background: none;
+  border: none;
+  color: var(--muted);
+  font-size: 18px;
+  padding: 4px 6px;
+  cursor: pointer;
+}
+.friends-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 0; }
