@@ -1,9 +1,10 @@
 "use strict";
 
 // ---- Config ----
-// USDA FoodData Central API key. Get a free one at:
-// https://fdc.nal.usda.gov/api-key-signup.html
-const USDA_API_KEY = "WGlFL6hwKXbARZCGfvK4172pMpvhNur8lWtMgQi9";
+// Cloudflare Worker that proxies to USDA FoodData Central. It holds the
+// USDA API key as an encrypted secret, so the key is never in this code.
+// Source: proxy/worker.js
+const FOOD_API = "https://calorie-api.jyybg668mz.workers.dev/";
 
 // ---- State ----
 let currentDate = startOfToday();
@@ -131,18 +132,14 @@ function closeSearch() {
   searchOverlay.classList.add("hidden");
 }
 
-// ---- USDA FoodData Central API ----
+// ---- Food search (via Worker proxy to USDA FoodData Central) ----
 async function runSearch(query) {
-  const url =
-    "https://api.nal.usda.gov/fdc/v1/foods/search?api_key=" + USDA_API_KEY +
-    "&query=" + encodeURIComponent(query) +
-    "&pageSize=25" +
-    "&dataType=" + encodeURIComponent("Foundation,SR Legacy,Survey (FNDDS)");
+  const url = FOOD_API + "?query=" + encodeURIComponent(query);
 
   try {
     const res = await fetch(url);
     if (res.status === 403) {
-      searchStatus.textContent = "API key missing or invalid. Check USDA_API_KEY in app.js.";
+      searchStatus.textContent = "Search is temporarily unavailable. Try again later.";
       searchResults.innerHTML = "";
       return;
     }

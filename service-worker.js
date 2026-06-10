@@ -1,4 +1,4 @@
-const CACHE = "calorie-counter-v2";
+const CACHE = "calorie-counter-v3";
 const ASSETS = [
   "./",
   "./index.html",
@@ -27,8 +27,8 @@ self.addEventListener("activate", (event) => {
 self.addEventListener("fetch", (event) => {
   const url = new URL(event.request.url);
 
-  // Never cache the food database API — always go to network.
-  if (url.hostname === "api.nal.usda.gov") {
+  // Never cache the food search proxy — always go to network.
+  if (url.hostname === "calorie-api.jyybg668mz.workers.dev") {
     return; // let the browser handle it normally
   }
 
