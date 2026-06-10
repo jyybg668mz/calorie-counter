@@ -6,11 +6,18 @@
 // Source: proxy/worker.js
 const FOOD_API = "https://calorie-api.jyybg668mz.workers.dev/";
 
+// Daily calorie goal. 2,000 kcal is the USDA/FDA reference intake for an
+// average adult (the basis for nutrition-label % Daily Values). Change
+// this to personalize the ring.
+const CALORIE_GOAL = 2000;
+
 // ---- State ----
 let currentDate = startOfToday();
 
 // ---- DOM ----
 const totalKcalEl = document.getElementById("totalKcal");
+const totalGoalEl = document.getElementById("totalGoal");
+const ringProgressEl = document.getElementById("ringProgress");
 const dateLabelEl = document.getElementById("dateLabel");
 const entryListEl = document.getElementById("entryList");
 const searchOverlay = document.getElementById("searchOverlay");
@@ -75,6 +82,18 @@ function deleteEntry(id) {
   render();
 }
 
+// ---- Progress ring ----
+const RING_CIRCUMFERENCE = 2 * Math.PI * 54; // r=54 in the SVG
+ringProgressEl.style.strokeDasharray = RING_CIRCUMFERENCE;
+
+function updateRing(total) {
+  const pct = Math.min(total / CALORIE_GOAL, 1);
+  ringProgressEl.style.strokeDashoffset = RING_CIRCUMFERENCE * (1 - pct);
+  const over = total > CALORIE_GOAL;
+  ringProgressEl.classList.toggle("over", over);
+  totalKcalEl.parentElement.classList.toggle("over", over);
+}
+
 // ---- Render ----
 function render() {
   const today = startOfToday();
@@ -91,6 +110,8 @@ function render() {
   const entries = loadEntries(currentDate);
   const total = entries.reduce((s, e) => s + e.kcal, 0);
   totalKcalEl.textContent = Math.round(total);
+  totalGoalEl.textContent = "of " + CALORIE_GOAL.toLocaleString() + " kcal";
+  updateRing(total);
 
   entryListEl.innerHTML = "";
   if (entries.length === 0) {

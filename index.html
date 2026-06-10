@@ -19,9 +19,15 @@
       <div class="date-label" id="dateLabel">Today</div>
       <button id="nextDay" class="ghost-btn" aria-label="Next day">›</button>
     </div>
-    <div class="total">
-      <span class="total-num" id="totalKcal">0</span>
-      <span class="total-unit">kcal</span>
+    <div class="ring-wrap">
+      <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+        <circle class="ring-track" cx="60" cy="60" r="54" />
+        <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="54" />
+      </svg>
+      <div class="ring-center">
+        <span class="total-num" id="totalKcal">0</span>
+        <span class="total-goal" id="totalGoal">of 2,000 kcal</span>
+      </div>
     </div>
   </header>
 
