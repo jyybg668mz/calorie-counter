@@ -4,7 +4,7 @@
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
   <title>Calorie Counter</title>
-  <meta name="theme-color" content="#10b981" />
+  <meta name="theme-color" content="#1e1b2e" />
   <link rel="manifest" href="manifest.json" />
   <link rel="apple-touch-icon" href="icon-180.png" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -22,6 +22,12 @@
     </div>
     <div class="ring-wrap">
       <svg class="ring" viewBox="0 0 120 120" aria-hidden="true">
+        <defs>
+          <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" stop-color="#fb7185" />
+            <stop offset="100%" stop-color="#f97316" />
+          </linearGradient>
+        </defs>
         <circle class="ring-track" cx="60" cy="60" r="54" />
         <circle class="ring-progress" id="ringProgress" cx="60" cy="60" r="54" />
       </svg>
