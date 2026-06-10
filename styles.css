@@ -439,11 +439,12 @@ body {
 }
 .small-btn:active { background: var(--accent-press); }
 
-.me-card, .add-friend {
+.me-card, .add-friend, .invite-card {
   border-bottom: 1px solid var(--surface-2);
   padding-bottom: 18px;
   margin-bottom: 4px;
 }
+.invite-card .muted-note { color: var(--muted); font-size: 13px; line-height: 1.5; }
 
 .add-status { color: var(--muted); font-size: 13px; margin-top: 8px; min-height: 16px; }
 

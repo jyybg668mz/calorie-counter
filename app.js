@@ -435,6 +435,16 @@ function renderResults(items, opts) {
 const SYNC_API = FOOD_API + "share/"; // .../share/sync , .../share/peek
 const ACCOUNT_KEY = "cc:account";     // { userId, code, name }
 const FRIENDS_KEY = "cc:friends";     // [ "CODE1", "CODE2", ... ]
+const APP_URL = "https://jyybg668mz.github.io/calorie-counter/";
+
+// The message sent when inviting a friend: the app link so they can install
+// it, plus your code so they can follow you once they enable sharing.
+function inviteMessage(code) {
+  return code
+    ? "Let's keep each other accountable on calories. Install the app, turn on " +
+      "sharing, and add my code " + code + " to follow my daily total:"
+    : "Let's keep each other accountable on calories. Install the app:";
+}
 
 const friendsOverlay = document.getElementById("friendsOverlay");
 const friendsBody = document.getElementById("friendsBody");
@@ -580,6 +590,33 @@ function renderFriends() {
     const b = me.querySelector("#saveName");
     b.textContent = "Saved";
     setTimeout(() => { b.textContent = "Save"; }, 1500);
+  });
+
+  // Invite a friend (share the app link + your code in one tap).
+  const invite = document.createElement("div");
+  invite.className = "invite-card";
+  invite.innerHTML = `
+    <div class="field-label">Invite a friend</div>
+    <p class="muted-note">Send them the app link and your code. They install it,
+    turn on sharing, and send their code back — then add it below.</p>
+    <button id="inviteBtn" class="primary-btn">Share app link &amp; code</button>
+    <div id="inviteStatus" class="add-status"></div>
+  `;
+  friendsBody.appendChild(invite);
+  invite.querySelector("#inviteBtn").addEventListener("click", async () => {
+    const status = invite.querySelector("#inviteStatus");
+    const text = inviteMessage(acct.code);
+    if (navigator.share) {
+      try {
+        await navigator.share({ title: "Calorie Counter", text, url: APP_URL });
+      } catch (e) { /* user cancelled the share sheet */ }
+    } else if (navigator.clipboard) {
+      navigator.clipboard.writeText(text + " " + APP_URL);
+      status.textContent = "Invite copied — paste it into a message.";
+      setTimeout(() => { status.textContent = ""; }, 2500);
+    } else {
+      status.textContent = APP_URL;
+    }
   });
 
   // Add a friend.
