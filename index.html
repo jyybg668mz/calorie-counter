@@ -1,0 +1,46 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover" />
+  <title>Calorie Counter</title>
+  <meta name="theme-color" content="#10b981" />
+  <link rel="manifest" href="manifest.json" />
+  <link rel="apple-touch-icon" href="icon-180.png" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Calories" />
+  <link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <header class="topbar">
+    <div class="date-nav">
+      <button id="prevDay" class="ghost-btn" aria-label="Previous day">‹</button>
+      <div class="date-label" id="dateLabel">Today</div>
+      <button id="nextDay" class="ghost-btn" aria-label="Next day">›</button>
+    </div>
+    <div class="total">
+      <span class="total-num" id="totalKcal">0</span>
+      <span class="total-unit">kcal</span>
+    </div>
+  </header>
+
+  <main id="entryList" class="entry-list">
+    <!-- entries injected here -->
+  </main>
+
+  <button id="addBtn" class="add-btn" aria-label="Add food">+</button>
+
+  <!-- Search overlay -->
+  <div id="searchOverlay" class="overlay hidden">
+    <div class="overlay-head">
+      <input id="searchInput" type="search" inputmode="search" placeholder="Search a food…" autocomplete="off" />
+      <button id="closeSearch" class="ghost-btn" aria-label="Close">✕</button>
+    </div>
+    <div id="searchStatus" class="search-status"></div>
+    <div id="searchResults" class="results"></div>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
