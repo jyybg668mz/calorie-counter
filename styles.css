@@ -188,6 +188,64 @@ body {
   line-height: 1.5;
 }
 
+/* Nutrition feedback */
+.feedback-bar {
+  display: flex;
+  justify-content: center;
+  padding: 0 16px 8px;
+}
+.feedback-bar.hidden { display: none; }
+
+.feedback-btn {
+  background: var(--surface);
+  border: 1px solid var(--surface-2);
+  color: var(--text);
+  font-size: 15px;
+  font-weight: 600;
+  padding: 12px 22px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.feedback-btn:active { background: var(--surface-2); }
+
+/* Bottom sheet */
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: flex;
+  align-items: flex-end;
+}
+.sheet.hidden { display: none; }
+
+.sheet-backdrop {
+  position: absolute;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.55);
+}
+
+.sheet-panel {
+  position: relative;
+  width: 100%;
+  background: var(--surface);
+  border-top-left-radius: 22px;
+  border-top-right-radius: 22px;
+  padding: 22px 20px calc(20px + var(--safe-bottom));
+  box-shadow: 0 -10px 34px rgba(0, 0, 0, 0.45);
+}
+
+.sheet-title { font-size: 18px; font-weight: 700; margin-bottom: 6px; }
+.sheet-note { color: var(--muted); font-size: 14px; line-height: 1.5; margin: 0 0 16px; }
+.sheet-copy { display: block; width: 100%; margin-top: 10px; }
+.sheet-cancel {
+  display: block;
+  width: 100%;
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: 15px;
+  text-align: center;
+}
+
 /* Add button */
 .add-btn {
   position: fixed;

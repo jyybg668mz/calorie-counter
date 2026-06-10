@@ -190,6 +190,7 @@ function render() {
   totalGoalEl.textContent = "of " + CALORIE_GOAL.toLocaleString() + " kcal";
   updateRing(total);
   scheduleSync(); // keep shared total fresh (no-op unless sharing is on)
+  feedbackBar.classList.toggle("hidden", entries.length === 0);
 
   entryListEl.innerHTML = "";
   if (entries.length === 0) {
@@ -705,6 +706,72 @@ function refreshFriendStats() {
       row.querySelector(".friend-sub").textContent = "Couldn't load";
     });
   }
+}
+
+// ---- Nutrition feedback (hand the day off to an AI coach) ----
+//
+// Nada deliberately holds no nutrition knowledge of its own. Instead it writes
+// the day's food into a ready-made question and either opens Claude with it
+// pre-filled (claude.ai/new?q=...) or copies it so you can paste into any
+// assistant. The framing asks for gentle, encouraging-coach feedback.
+const feedbackBar = document.getElementById("feedbackBar");
+const feedbackSheet = document.getElementById("feedbackSheet");
+
+document.getElementById("feedbackBtn").addEventListener("click", openFeedback);
+document.getElementById("feedbackBackdrop").addEventListener("click", closeFeedback);
+document.getElementById("feedbackCancel").addEventListener("click", closeFeedback);
+document.getElementById("askClaudeBtn").addEventListener("click", () => {
+  const prompt = buildFeedbackPrompt(currentDate);
+  window.open("https://claude.ai/new?q=" + encodeURIComponent(prompt), "_blank", "noopener");
+  closeFeedback();
+});
+document.getElementById("copyDayBtn").addEventListener("click", () => {
+  const status = document.getElementById("feedbackStatus");
+  const prompt = buildFeedbackPrompt(currentDate);
+  if (navigator.clipboard) {
+    navigator.clipboard.writeText(prompt).then(
+      () => { status.textContent = "Copied — paste it into any AI chat."; },
+      () => { status.textContent = "Couldn't copy. Try again."; }
+    );
+  } else {
+    status.textContent = "Clipboard isn't available on this device.";
+  }
+});
+
+function dayPhrase(d) {
+  const diff = Math.round((d - startOfToday()) / 86400000);
+  if (diff === 0) return "today";
+  if (diff === -1) return "yesterday";
+  return "on " + d.toLocaleDateString(undefined,
+    { weekday: "long", month: "long", day: "numeric" });
+}
+
+function buildFeedbackPrompt(d) {
+  const entries = loadEntries(d);
+  const total = Math.round(entries.reduce((s, e) => s + e.kcal, 0));
+  const lines = entries.map((e) =>
+    "- " + e.name + (e.brand ? " (" + e.brand + ")" : "") +
+    ", " + e.grams + " g, " + Math.round(e.kcal) + " kcal"
+  ).join("\n");
+  return (
+    "I'm using a simple calorie-logging app and trying to eat better. " +
+    "Here's everything I ate " + dayPhrase(d) + ":\n\n" + lines +
+    "\n\nTotal so far: " + total + " of " + CALORIE_GOAL + " kcal.\n\n" +
+    "Please act as a gentle, encouraging nutrition coach. In a few short, " +
+    "friendly paragraphs: tell me what I'm doing well, what might be missing " +
+    "for well-rounded nutrition (protein, fiber, fruits and vegetables, whole " +
+    "grains, healthy fats, key vitamins and minerals), and suggest a few easy, " +
+    "realistic foods I could add or swap in. Keep it positive and practical — " +
+    "no shaming and no calorie lectures."
+  );
+}
+
+function openFeedback() {
+  document.getElementById("feedbackStatus").textContent = "";
+  feedbackSheet.classList.remove("hidden");
+}
+function closeFeedback() {
+  feedbackSheet.classList.add("hidden");
 }
 
 // ---- Service worker ----

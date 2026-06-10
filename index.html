@@ -36,7 +36,26 @@
     <!-- entries injected here -->
   </main>
 
+  <div id="feedbackBar" class="feedback-bar hidden">
+    <button id="feedbackBtn" class="feedback-btn">Ask an AI coach about today</button>
+  </div>
+
   <button id="addBtn" class="add-btn" aria-label="Add food">+</button>
+
+  <!-- Nutrition feedback chooser -->
+  <div id="feedbackSheet" class="sheet hidden">
+    <div class="sheet-backdrop" id="feedbackBackdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-title">Nutrition feedback</div>
+      <p class="sheet-note">Nada writes out your day's food as a question for an
+        AI coach — friendly, practical suggestions on what's well-rounded and what
+        you might add. Nothing is stored; it just opens a chat with your day filled in.</p>
+      <button id="askClaudeBtn" class="primary-btn">Ask Claude</button>
+      <button id="copyDayBtn" class="small-btn sheet-copy">Copy day's summary to paste anywhere</button>
+      <div id="feedbackStatus" class="add-status"></div>
+      <button id="feedbackCancel" class="ghost-btn sheet-cancel">Cancel</button>
+    </div>
+  </div>
 
   <!-- Search overlay -->
   <div id="searchOverlay" class="overlay hidden">
