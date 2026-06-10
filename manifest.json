@@ -1,6 +1,6 @@
 {
-  "name": "Calorie Counter",
-  "short_name": "Calories",
+  "name": "Nada",
+  "short_name": "Nada",
   "description": "A simple daily calorie counter.",
   "start_url": "./index.html",
   "scope": "./",
