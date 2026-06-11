@@ -14,6 +14,7 @@
 </head>
 <body>
   <header class="topbar">
+    <button id="settingsBtn" class="corner-btn corner-left" aria-label="Settings">&#9881;</button>
     <button id="friendsBtn" class="corner-btn" aria-label="Friends">&#128101;</button>
     <div class="date-nav">
       <button id="prevDay" class="ghost-btn" aria-label="Previous day">‹</button>
@@ -40,7 +41,50 @@
     <button id="feedbackBtn" class="feedback-btn">Ask an AI coach about today</button>
   </div>
 
+  <button id="exerciseBtn" class="ex-fab" aria-label="Log exercise">&#127939;</button>
   <button id="addBtn" class="add-btn" aria-label="Add food">+</button>
+
+  <!-- Daily goal settings -->
+  <div id="settingsSheet" class="sheet hidden">
+    <div class="sheet-backdrop" id="settingsBackdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-title" id="settingsTitle">Daily goal</div>
+      <p class="sheet-note" id="settingsNote"></p>
+      <label class="field-label">Daily calorie goal</label>
+      <div class="code-row">
+        <input id="goalInput" class="text-input" type="number" inputmode="numeric" min="800" max="10000" />
+        <span class="goal-unit">kcal</span>
+      </div>
+      <button id="useDefaultBtn" class="small-btn sheet-copy">Use the default (2,000)</button>
+      <button id="saveGoalBtn" class="primary-btn">Save goal</button>
+      <button id="settingsCancel" class="ghost-btn sheet-cancel">Cancel</button>
+    </div>
+  </div>
+
+  <!-- Log exercise -->
+  <div id="exerciseSheet" class="sheet hidden">
+    <div class="sheet-backdrop" id="exerciseBackdrop"></div>
+    <div class="sheet-panel">
+      <div class="sheet-title">Log exercise</div>
+      <p class="sheet-note">Pick an activity and minutes for a quick estimate, or
+        just type the calories. What you log is added to the day's budget.</p>
+      <div class="chips" id="activityChips"></div>
+      <label class="field-label">Activity</label>
+      <input id="exName" class="text-input" type="text" maxlength="40" placeholder="e.g. Walk" />
+      <div class="ex-row">
+        <div class="ex-field">
+          <label class="field-label">Minutes</label>
+          <input id="exMinutes" class="text-input" type="number" inputmode="numeric" min="0" value="30" />
+        </div>
+        <div class="ex-field">
+          <label class="field-label">Calories burned</label>
+          <input id="exKcal" class="text-input" type="number" inputmode="numeric" min="0" />
+        </div>
+      </div>
+      <button id="addExerciseBtn" class="primary-btn">Add exercise</button>
+      <button id="exerciseCancel" class="ghost-btn sheet-cancel">Cancel</button>
+    </div>
+  </div>
 
   <!-- Nutrition feedback chooser -->
   <div id="feedbackSheet" class="sheet hidden">

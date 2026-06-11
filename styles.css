@@ -246,6 +246,51 @@ body {
   text-align: center;
 }
 
+/* Settings + exercise */
+.corner-btn.corner-left { right: auto; left: 14px; }
+
+.goal-unit { color: var(--muted); font-size: 14px; padding: 0 4px; }
+
+.ex-row { display: flex; gap: 12px; }
+.ex-field { flex: 1; min-width: 0; }
+
+.chips { display: flex; flex-wrap: wrap; gap: 8px; margin: 4px 0 12px; }
+.chip {
+  background: var(--surface-2);
+  border: none;
+  color: var(--text);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 9px 16px;
+  border-radius: 999px;
+  cursor: pointer;
+}
+.chip.on { background: var(--accent); color: #fff; }
+
+.sheet.onboarding .sheet-cancel { display: none; }
+
+/* Exercise mini-FAB, stacked above the food + button */
+.ex-fab {
+  position: fixed;
+  right: 26px;
+  bottom: calc(100px + var(--safe-bottom));
+  width: 52px;
+  height: 52px;
+  border-radius: 50%;
+  background: var(--surface);
+  border: 1px solid var(--surface-2);
+  color: var(--text);
+  font-size: 22px;
+  line-height: 1;
+  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
+  cursor: pointer;
+  z-index: 6;
+}
+.ex-fab:active { background: var(--surface-2); }
+
+/* Earned (exercise) rows */
+.entry-kcal.earned { color: #22c55e; }
+
 /* Add button */
 .add-btn {
   position: fixed;

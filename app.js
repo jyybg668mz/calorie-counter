@@ -7,9 +7,10 @@
 const FOOD_API = "https://calorie-api.jyybg668mz.workers.dev/";
 
 // Daily calorie goal. 2,000 kcal is the USDA/FDA reference intake for an
-// average adult (the basis for nutrition-label % Daily Values). Change
-// this to personalize the ring.
-const CALORIE_GOAL = 2000;
+// average adult (the basis for nutrition-label % Daily Values) and the
+// default. Each person can set their own (stored as cc:goal), and any
+// exercise logged that day is added on top to grow that day's budget.
+const DEFAULT_GOAL = 2000;
 
 // ---- State ----
 let currentDate = startOfToday();
@@ -78,6 +79,42 @@ function addEntry(entry) {
 function deleteEntry(id) {
   const entries = loadEntries(currentDate).filter((e) => e.id !== id);
   saveEntries(currentDate, entries);
+  render();
+}
+
+// ---- Daily goal & exercise ----
+// The base daily goal is a single user setting (cc:goal); 2,000 is the
+// default until they pick one. Exercise is logged per day (cc:ex:<date>) and
+// its calories are added to that day's goal, so moving more earns headroom.
+const GOAL_KEY = "cc:goal";
+
+function getGoal() {
+  const v = parseInt(localStorage.getItem(GOAL_KEY), 10);
+  return isFinite(v) && v > 0 ? v : DEFAULT_GOAL;
+}
+function setGoal(n) {
+  const v = Math.round(n);
+  if (isFinite(v) && v > 0) localStorage.setItem(GOAL_KEY, String(v));
+}
+function hasGoalSet() {
+  return localStorage.getItem(GOAL_KEY) != null;
+}
+
+function loadExercise(d) {
+  try { return JSON.parse(localStorage.getItem("cc:ex:" + dateKey(d))) || []; }
+  catch (e) { return []; }
+}
+function saveExercise(d, arr) {
+  localStorage.setItem("cc:ex:" + dateKey(d), JSON.stringify(arr));
+}
+function addExerciseEntry(ex) {
+  const arr = loadExercise(currentDate);
+  arr.push(ex);
+  saveExercise(currentDate, arr);
+  render();
+}
+function deleteExercise(id) {
+  saveExercise(currentDate, loadExercise(currentDate).filter((e) => e.id !== id));
   render();
 }
 
@@ -164,11 +201,10 @@ function showRecents() {
 }
 
 // ---- Progress ring ----
-function updateRing(total) {
-  const pct = Math.min(total / CALORIE_GOAL, 1);
+function updateRing(total, goal) {
+  const pct = Math.min(total / goal, 1);
   ringProgressEl.style.setProperty("--p", pct);
-  const over = total > CALORIE_GOAL;
-  totalKcalEl.parentElement.classList.toggle("over", over);
+  totalKcalEl.parentElement.classList.toggle("over", total > goal);
 }
 
 // ---- Render ----
@@ -185,15 +221,20 @@ function render() {
   }
 
   const entries = loadEntries(currentDate);
-  const total = entries.reduce((s, e) => s + e.kcal, 0);
-  totalKcalEl.textContent = Math.round(total);
-  totalGoalEl.textContent = "of " + CALORIE_GOAL.toLocaleString() + " kcal";
-  updateRing(total);
+  const exercises = loadExercise(currentDate);
+  const foodTotal = entries.reduce((s, e) => s + e.kcal, 0);
+  const exTotal = exercises.reduce((s, e) => s + e.kcal, 0);
+  const goal = getGoal() + exTotal; // exercise grows the day's budget
+  totalKcalEl.textContent = Math.round(foodTotal);
+  totalGoalEl.textContent = "of " + Math.round(goal).toLocaleString() + " kcal";
+  updateRing(foodTotal, goal);
   scheduleSync(); // keep shared total fresh (no-op unless sharing is on)
-  feedbackBar.classList.toggle("hidden", entries.length === 0);
+
+  const hasAny = entries.length > 0 || exercises.length > 0;
+  feedbackBar.classList.toggle("hidden", !hasAny);
 
   entryListEl.innerHTML = "";
-  if (entries.length === 0) {
+  if (!hasAny) {
     const empty = document.createElement("div");
     empty.className = "empty";
     empty.textContent = "No food logged yet. Tap + to add something you ate.";
@@ -216,6 +257,25 @@ function render() {
     row.querySelector(".entry-sub").textContent =
       `${e.grams} g${e.brand ? " · " + e.brand : ""}`;
     row.querySelector(".entry-del").addEventListener("click", () => deleteEntry(e.id));
+    entryListEl.appendChild(row);
+  }
+
+  // Exercise rows: earned calories, shown in green with a +.
+  for (const ex of exercises) {
+    const row = document.createElement("div");
+    row.className = "entry exercise";
+    row.innerHTML = `
+      <div class="entry-info">
+        <div class="entry-name"></div>
+        <div class="entry-sub"></div>
+      </div>
+      <div class="entry-kcal earned">+${Math.round(ex.kcal)}</div>
+      <button class="entry-del" aria-label="Remove">✕</button>
+    `;
+    row.querySelector(".entry-name").textContent = ex.name || "Exercise";
+    row.querySelector(".entry-sub").textContent =
+      (ex.minutes ? ex.minutes + " min · " : "") + "earned back";
+    row.querySelector(".entry-del").addEventListener("click", () => deleteExercise(ex.id));
     entryListEl.appendChild(row);
   }
 }
@@ -486,7 +546,7 @@ async function syncNow() {
       body: JSON.stringify({
         userId: acct.userId,
         name: acct.name || "",
-        goal: CALORIE_GOAL,
+        goal: getGoal(),
         date: dateKey(startOfToday()),
         total: todayTotal(),
       }),
@@ -748,15 +808,28 @@ function dayPhrase(d) {
 
 function buildFeedbackPrompt(d) {
   const entries = loadEntries(d);
+  const exercises = loadExercise(d);
   const total = Math.round(entries.reduce((s, e) => s + e.kcal, 0));
+  const exTotal = Math.round(exercises.reduce((s, e) => s + e.kcal, 0));
+  const goal = getGoal() + exTotal;
   const lines = entries.map((e) =>
     "- " + e.name + (e.brand ? " (" + e.brand + ")" : "") +
     ", " + e.grams + " g, " + Math.round(e.kcal) + " kcal"
   ).join("\n");
+  let exBlock = "";
+  if (exercises.length) {
+    exBlock = "\n\nExercise " + dayPhrase(d) + ":\n" + exercises.map((e) =>
+      "- " + (e.name || "Exercise") + (e.minutes ? ", " + e.minutes + " min" : "") +
+      ", ~" + Math.round(e.kcal) + " kcal burned"
+    ).join("\n");
+  }
+  const budgetNote = exTotal > 0
+    ? " (a " + getGoal() + " base plus " + exTotal + " earned from exercise)"
+    : "";
   return (
     "I'm using a simple calorie-logging app and trying to eat better. " +
-    "Here's everything I ate " + dayPhrase(d) + ":\n\n" + lines +
-    "\n\nTotal so far: " + total + " of " + CALORIE_GOAL + " kcal.\n\n" +
+    "Here's everything I ate " + dayPhrase(d) + ":\n\n" + lines + exBlock +
+    "\n\nTotal eaten: " + total + " of a " + goal + " kcal budget" + budgetNote + ".\n\n" +
     "Please act as a gentle, encouraging nutrition coach. In a few short, " +
     "friendly paragraphs: tell me what I'm doing well, what might be missing " +
     "for well-rounded nutrition (protein, fiber, fruits and vegetables, whole " +
@@ -774,6 +847,108 @@ function closeFeedback() {
   feedbackSheet.classList.add("hidden");
 }
 
+// ---- Daily goal settings (sheet) ----
+const settingsSheet = document.getElementById("settingsSheet");
+const goalInput = document.getElementById("goalInput");
+
+document.getElementById("settingsBtn").addEventListener("click", () => openSettings(false));
+document.getElementById("settingsBackdrop").addEventListener("click", closeSettings);
+document.getElementById("settingsCancel").addEventListener("click", closeSettings);
+document.getElementById("useDefaultBtn").addEventListener("click", () => {
+  setGoal(DEFAULT_GOAL);
+  closeSettings();
+  render();
+});
+document.getElementById("saveGoalBtn").addEventListener("click", () => {
+  const v = parseInt(goalInput.value, 10);
+  if (!isFinite(v) || v < 800 || v > 10000) { goalInput.focus(); return; }
+  setGoal(v);
+  closeSettings();
+  render();
+});
+
+function openSettings(onboarding) {
+  settingsSheet.classList.toggle("onboarding", !!onboarding);
+  document.getElementById("settingsTitle").textContent =
+    onboarding ? "Welcome to Nada" : "Daily goal";
+  document.getElementById("settingsNote").textContent = onboarding
+    ? "First, set the calories you're aiming for each day. The default, 2,000, " +
+      "is the general adult reference — pick whatever fits you. You can change " +
+      "it anytime, and any exercise you log adds to that day's budget."
+    : "Set the calories you're aiming for each day. Exercise you log is added " +
+      "on top of this to grow that day's budget.";
+  goalInput.value = getGoal();
+  settingsSheet.classList.remove("hidden");
+}
+function closeSettings() { settingsSheet.classList.add("hidden"); }
+
+// ---- Exercise logging (sheet) ----
+// "Both" input styles: tap a quick activity + minutes for a rough estimate
+// (editable), or just type the calories. The kcal/min figures are rough
+// averages for an adult — good enough to nudge the budget, easy to override.
+const ACTIVITIES = [
+  { key: "walk",  label: "Walk",  kcalPerMin: 4 },
+  { key: "run",   label: "Run",   kcalPerMin: 10 },
+  { key: "bike",  label: "Bike",  kcalPerMin: 7 },
+  { key: "gym",   label: "Gym",   kcalPerMin: 5 },
+  { key: "other", label: "Other", kcalPerMin: 5 },
+];
+let selectedActivity = ACTIVITIES[0];
+
+const exerciseSheet = document.getElementById("exerciseSheet");
+const exName = document.getElementById("exName");
+const exMinutes = document.getElementById("exMinutes");
+const exKcal = document.getElementById("exKcal");
+
+document.getElementById("exerciseBtn").addEventListener("click", openExercise);
+document.getElementById("exerciseBackdrop").addEventListener("click", closeExercise);
+document.getElementById("exerciseCancel").addEventListener("click", closeExercise);
+exMinutes.addEventListener("input", recomputeBurn);
+document.getElementById("addExerciseBtn").addEventListener("click", () => {
+  const kcal = Math.max(0, Math.round(parseFloat(exKcal.value) || 0));
+  if (kcal <= 0) { exKcal.focus(); return; }
+  addExerciseEntry({
+    id: Date.now() + "-" + Math.random().toString(36).slice(2, 7),
+    name: (exName.value || selectedActivity.label || "Exercise").trim(),
+    minutes: Math.max(0, Math.round(parseFloat(exMinutes.value) || 0)),
+    kcal,
+  });
+  closeExercise();
+});
+
+function renderChips() {
+  const wrap = document.getElementById("activityChips");
+  wrap.innerHTML = "";
+  for (const a of ACTIVITIES) {
+    const b = document.createElement("button");
+    b.className = "chip" + (a.key === selectedActivity.key ? " on" : "");
+    b.textContent = a.label;
+    b.addEventListener("click", () => {
+      selectedActivity = a;
+      if (a.key !== "other") exName.value = a.label;
+      else if (ACTIVITIES.some((x) => x.label === exName.value)) exName.value = "";
+      renderChips();
+      recomputeBurn();
+    });
+    wrap.appendChild(b);
+  }
+}
+// Re-estimate burned calories from the selected activity + minutes. (Manual
+// edits to the calorie field stick until the activity or minutes change.)
+function recomputeBurn() {
+  const mins = Math.max(0, parseFloat(exMinutes.value) || 0);
+  exKcal.value = Math.round((selectedActivity.kcalPerMin || 5) * mins);
+}
+function openExercise() {
+  selectedActivity = ACTIVITIES[0];
+  exName.value = selectedActivity.label;
+  exMinutes.value = 30;
+  recomputeBurn();
+  renderChips();
+  exerciseSheet.classList.remove("hidden");
+}
+function closeExercise() { exerciseSheet.classList.add("hidden"); }
+
 // ---- Service worker ----
 if ("serviceWorker" in navigator) {
   window.addEventListener("load", () => {
@@ -783,3 +958,4 @@ if ("serviceWorker" in navigator) {
 
 // ---- Init ----
 render();
+if (!hasGoalSet()) openSettings(true); // first-run: choose a goal or default
