@@ -277,16 +277,30 @@ function render() {
 
   entryListEl.innerHTML = "";
 
-  // Add-food card always sits at the top of the day — the intuitive place to
-  // log something you ate.
-  const addCard = document.createElement("button");
-  addCard.className = "add-card";
-  addCard.innerHTML = `
+  // Add row: log food (gold) or exercise (green) sit side by side at the top
+  // of the day — the intuitive place to add either.
+  const addRow = document.createElement("div");
+  addRow.className = "add-row";
+
+  const addFood = document.createElement("button");
+  addFood.className = "add-card add-food";
+  addFood.innerHTML = `
     <span class="add-card-icon">+</span>
     <span class="add-card-text">Add food</span>
   `;
-  addCard.addEventListener("click", openSearch);
-  entryListEl.appendChild(addCard);
+  addFood.addEventListener("click", openSearch);
+
+  const addEx = document.createElement("button");
+  addEx.className = "add-card add-exercise";
+  addEx.innerHTML = `
+    <span class="add-card-icon">+</span>
+    <span class="add-card-text">Add exercise</span>
+  `;
+  addEx.addEventListener("click", openExercise);
+
+  addRow.appendChild(addFood);
+  addRow.appendChild(addEx);
+  entryListEl.appendChild(addRow);
 
   if (!hasAny) {
     const empty = document.createElement("div");
@@ -1113,7 +1127,6 @@ const exName = document.getElementById("exName");
 const exMinutes = document.getElementById("exMinutes");
 const exKcal = document.getElementById("exKcal");
 
-document.getElementById("exerciseBtn").addEventListener("click", openExercise);
 document.getElementById("exerciseBackdrop").addEventListener("click", closeExercise);
 document.getElementById("exerciseCancel").addEventListener("click", closeExercise);
 exMinutes.addEventListener("input", recomputeBurn);
