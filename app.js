@@ -18,7 +18,10 @@ let currentDate = startOfToday();
 // ---- DOM ----
 const totalKcalEl = document.getElementById("totalKcal");
 const totalGoalEl = document.getElementById("totalGoal");
-const ringProgressEl = document.getElementById("ringProgress");
+const roadFillEl = document.getElementById("roadFill");
+const roadWalkerEl = document.getElementById("roadWalker");
+const roadSunEl = document.getElementById("roadSun");
+const progressWrapEl = document.getElementById("progressWrap");
 const dateLabelEl = document.getElementById("dateLabel");
 const entryListEl = document.getElementById("entryList");
 const searchOverlay = document.getElementById("searchOverlay");
@@ -199,11 +202,51 @@ function showRecents() {
   renderResults(foods, { recents: true });
 }
 
-// ---- Progress ring ----
-function updateRing(total, goal) {
-  const pct = Math.min(total / goal, 1);
-  ringProgressEl.style.setProperty("--p", pct);
-  totalKcalEl.parentElement.classList.toggle("over", total > goal);
+// ---- Progress road ----
+// The day is a walk down a road toward the sun. Color tells the story:
+// fresh green at the start, golden as you reach your goal, then — if you go
+// over — through sunset amber into night (dark blue → black).
+const ROAD_STOPS = [
+  { r: 0.0,  c: [0x22, 0xc5, 0x5e] }, // green  — fresh start
+  { r: 1.0,  c: [0xf5, 0xc5, 0x42] }, // gold   — goal reached (golden hour)
+  { r: 1.15, c: [0xf9, 0x73, 0x16] }, // amber  — just over (sunset)
+  { r: 1.4,  c: [0x1e, 0x3a, 0x8a] }, // dark blue — dusk
+  { r: 1.9,  c: [0x0b, 0x0b, 0x16] }, // night  — well over
+];
+function roadColor(r) {
+  if (r <= ROAD_STOPS[0].r) return rgbStr(ROAD_STOPS[0].c);
+  for (let i = 1; i < ROAD_STOPS.length; i++) {
+    if (r <= ROAD_STOPS[i].r) {
+      const a = ROAD_STOPS[i - 1], b = ROAD_STOPS[i];
+      const t = (r - a.r) / (b.r - a.r);
+      return rgbStr([
+        Math.round(a.c[0] + (b.c[0] - a.c[0]) * t),
+        Math.round(a.c[1] + (b.c[1] - a.c[1]) * t),
+        Math.round(a.c[2] + (b.c[2] - a.c[2]) * t),
+      ]);
+    }
+  }
+  return rgbStr(ROAD_STOPS[ROAD_STOPS.length - 1].c);
+}
+function rgbStr(c) { return `rgb(${c[0]}, ${c[1]}, ${c[2]})`; }
+
+function updateRoad(total, goal) {
+  const r = goal > 0 ? total / goal : 0;
+  const pct = Math.max(0, Math.min(r, 1)) * 100;
+  const rc = Math.min(r, 1.9);
+
+  roadFillEl.style.width = pct + "%";
+  // Gradient from an earlier (left) shade to the current (right) one, so the
+  // whole road slides toward night as you go over.
+  roadFillEl.style.background =
+    `linear-gradient(90deg, ${roadColor(rc * 0.6)}, ${roadColor(rc)})`;
+  roadWalkerEl.style.left = pct + "%";
+
+  const over = r > 1;
+  const atGoal = r >= 0.97 && r <= 1.03;
+  progressWrapEl.classList.toggle("over", over);
+  progressWrapEl.classList.toggle("at-goal", atGoal);
+  roadSunEl.textContent = over ? "\u{1F319}" : "☀️"; // moon when over, else sun
 }
 
 // ---- Render ----
@@ -226,7 +269,7 @@ function render() {
   const goal = getGoal() + exTotal; // exercise grows the day's budget
   totalKcalEl.textContent = Math.round(foodTotal);
   totalGoalEl.textContent = "of " + Math.round(goal).toLocaleString() + " kcal";
-  updateRing(foodTotal, goal);
+  updateRoad(foodTotal, goal);
   scheduleSync(); // keep shared total fresh (no-op unless sharing is on)
 
   const hasAny = entries.length > 0 || exercises.length > 0;

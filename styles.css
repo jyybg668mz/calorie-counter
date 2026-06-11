@@ -56,60 +56,15 @@ body {
   text-align: center;
 }
 
-.ring-wrap {
+/* Progress "road": the day is a walk down a road toward the sun. The fill
+   advances left→right and its color tells the story (green → gold at goal →
+   amber → night if you go over). The walker marks how far you've come. */
+.progress-wrap {
   position: relative;
-  width: 188px;
-  height: 188px;
   margin: 4px auto 0;
 }
 
-/* Stoplight ombre ring: a conic gradient (green -> orange -> red) anchored
-   to the angle around the circle, masked into a ring shape. The colors stay
-   in place; the fill (--p, 0..1) just reveals more of them as the day fills. */
-@property --p {
-  syntax: "<number>";
-  inherits: false;
-  initial-value: 0;
-}
-
-.ring-track2,
-.ring-clip,
-.ring-fill {
-  position: absolute;
-  inset: 0;
-  border-radius: 50%;
-}
-
-/* Both the track and the progress live inside a ring-shaped (annulus) mask.
-   The clip carves the ring hole; the fill just paints + reveals the arc.
-   Keeping the annulus mask on a parent means each element needs only one
-   mask layer, so we never depend on mask-composite (flaky in some engines). */
-.ring-track2,
-.ring-clip {
-  -webkit-mask: radial-gradient(farthest-side, transparent calc(100% - 14px), #000 calc(100% - 14px));
-  mask: radial-gradient(farthest-side, transparent calc(100% - 14px), #000 calc(100% - 14px));
-}
-
-.ring-track2 {
-  background: var(--surface-2);
-}
-
-.ring-fill {
-  --p: 0;
-  background: conic-gradient(from 0deg, #22c55e 0deg, #f97316 180deg, #ef4444 352deg);
-  -webkit-mask: conic-gradient(from 0deg, #000 0deg calc(var(--p) * 360deg), transparent calc(var(--p) * 360deg) 360deg);
-  mask: conic-gradient(from 0deg, #000 0deg calc(var(--p) * 360deg), transparent calc(var(--p) * 360deg) 360deg);
-  transition: --p 0.5s ease;
-}
-
-.ring-center {
-  position: absolute;
-  inset: 0;
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-}
+.total-box { text-align: center; }
 
 .total-num {
   font-size: 48px;
@@ -118,16 +73,59 @@ body {
   color: var(--accent);
   line-height: 1;
 }
-
-.ring-center.over .total-num {
-  color: var(--over);
-}
+.progress-wrap.over .total-num { color: #93b4ff; } /* moonlit blue when over */
 
 .total-goal {
   font-size: 14px;
   font-weight: 600;
   color: var(--muted);
   margin-top: 4px;
+  display: block;
+}
+
+.road {
+  position: relative;
+  height: 16px;
+  margin: 18px 8px 6px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  transition: box-shadow 0.5s ease;
+}
+.progress-wrap.at-goal .road {
+  box-shadow: 0 0 16px rgba(245, 197, 66, 0.55);
+}
+
+.road-fill {
+  position: absolute;
+  left: 0;
+  top: 0;
+  bottom: 0;
+  width: 0;
+  border-radius: 999px;
+  background: linear-gradient(90deg, #22c55e, #f5c542);
+  transition: width 0.5s ease, background 0.5s ease;
+}
+
+.road-walker {
+  position: absolute;
+  top: 50%;
+  left: 0;
+  transform: translate(-50%, -50%);
+  font-size: 22px;
+  line-height: 1;
+  z-index: 2;
+  transition: left 0.5s ease;
+  filter: drop-shadow(0 1px 2px rgba(0, 0, 0, 0.45));
+}
+
+.road-sun {
+  position: absolute;
+  top: 50%;
+  right: 0;
+  transform: translate(45%, -50%);
+  font-size: 22px;
+  line-height: 1;
+  z-index: 1;
 }
 
 /* Entry list */
@@ -273,9 +271,8 @@ body {
    day's budget shown in the ring. */
 .ring-action {
   position: absolute;
-  top: 50%;
-  left: calc(100% + 6px);
-  transform: translateY(-50%);
+  top: 2px;
+  right: 2px;
   display: flex;
   flex-direction: column;
   align-items: center;

@@ -21,12 +21,8 @@
       <div class="date-label" id="dateLabel">Today</div>
       <button id="nextDay" class="ghost-btn" aria-label="Next day">›</button>
     </div>
-    <div class="ring-wrap">
-      <div class="ring-track2" aria-hidden="true"></div>
-      <div class="ring-clip" aria-hidden="true">
-        <div class="ring-fill" id="ringProgress"></div>
-      </div>
-      <div class="ring-center">
+    <div class="progress-wrap" id="progressWrap">
+      <div class="total-box">
         <span class="total-num" id="totalKcal">0</span>
         <span class="total-goal" id="totalGoal">of 2,000 kcal</span>
       </div>
@@ -34,6 +30,11 @@
         <span class="ring-action-icon">&#127939;</span>
         <span class="ring-action-label">Exercise</span>
       </button>
+      <div class="road" id="road">
+        <div class="road-fill" id="roadFill"></div>
+        <div class="road-sun" id="roadSun" aria-hidden="true">&#9728;&#65039;</div>
+        <div class="road-walker" id="roadWalker" aria-hidden="true">&#128694;</div>
+      </div>
     </div>
   </header>
 
