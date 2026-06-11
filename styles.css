@@ -7,7 +7,7 @@
   --accent: #f97316;
   --accent-press: #ea580c;
   --gold: #d4a017;   /* deep lush gold — calorie numbers + goal-reached road */
-  --forest: #2ea043; /* deep lush forest green — earned (exercise) calories */
+  --forest: #1f7a37; /* deep forest green — earned (exercise) calories */
   --over: #fb7185;
   --danger: #ef4444;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -265,7 +265,7 @@ body {
   border-radius: 999px;
   cursor: pointer;
 }
-.chip.on { background: var(--accent); color: #fff; }
+.chip.on { background: var(--forest); color: #fff; }
 
 .sheet.onboarding .sheet-cancel { display: none; }
 
@@ -402,7 +402,7 @@ body {
 .result-per {
   font-size: 13px;
   font-weight: 600;
-  color: var(--accent);
+  color: var(--gold);
   white-space: nowrap;
 }
 
@@ -450,7 +450,7 @@ body {
 .computed {
   font-size: 16px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--gold);
   flex: 1;
 }
 
