@@ -560,16 +560,48 @@ body {
 }
 .small-btn:active { background: var(--accent-press); }
 
-.me-card, .add-friend, .invite-card {
-  border-bottom: 1px solid var(--surface-2);
-  padding-bottom: 18px;
-  margin-bottom: 4px;
-}
 .invite-card .muted-note { color: var(--muted); font-size: 13px; line-height: 1.5; }
 
 .add-status { color: var(--muted); font-size: 13px; margin-top: 8px; min-height: 16px; }
 
-.friend-list { margin-top: 16px; display: flex; flex-direction: column; gap: 10px; }
+/* Section heading inside the Friends overlay. */
+.section-title {
+  font-size: 13px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--muted);
+  margin: 4px 0 12px;
+}
+
+/* Invite / add controls. Full size at first; a lighter footer once you have
+   friends listed above it. */
+.share-section { margin-top: 8px; }
+.share-section .add-friend { margin-bottom: 14px; }
+.share-section #inviteBtn { width: 100%; }
+.share-section.compact {
+  margin-top: 28px;
+  padding-top: 20px;
+  border-top: 1px solid var(--surface-2);
+  opacity: 0.92;
+}
+.share-section.compact .section-title { margin-top: 0; }
+
+/* Your own code + name, tucked into a collapsible disclosure. */
+.my-code { margin-top: 14px; }
+.my-code > summary {
+  list-style: none;
+  cursor: pointer;
+  color: var(--muted);
+  font-size: 14px;
+  font-weight: 600;
+  padding: 6px 0;
+}
+.my-code > summary::-webkit-details-marker { display: none; }
+.my-code > summary::after { content: " ›"; }
+.my-code[open] > summary::after { content: " ⌄"; }
+
+.friend-list { margin-top: 4px; display: flex; flex-direction: column; gap: 10px; }
 
 .friend {
   display: flex;

@@ -616,52 +616,64 @@ function renderFriends() {
     return;
   }
 
-  // Your code + name.
-  const me = document.createElement("div");
-  me.className = "me-card";
-  me.innerHTML = `
-    <div class="field-label">Your share code</div>
-    <div class="code-row">
-      <span class="code" id="myCode">${acct.code || "…"}</span>
-      <button id="copyCode" class="small-btn">Copy</button>
-    </div>
-    <div class="field-label">Your name</div>
-    <div class="code-row">
-      <input id="nameInput" class="text-input" type="text" maxlength="40"
-        value="${escapeAttr(acct.name || "")}" placeholder="Your name" />
-      <button id="saveName" class="small-btn">Save</button>
-    </div>
-  `;
-  friendsBody.appendChild(me);
-  me.querySelector("#copyCode").addEventListener("click", () => {
-    if (!acct.code) return;
-    if (navigator.clipboard) navigator.clipboard.writeText(acct.code);
-    const b = me.querySelector("#copyCode");
-    b.textContent = "Copied";
-    setTimeout(() => { b.textContent = "Copy"; }, 1500);
-  });
-  me.querySelector("#saveName").addEventListener("click", () => {
-    acct.name = me.querySelector("#nameInput").value.trim();
-    setAccount(acct);
-    syncNow();
-    const b = me.querySelector("#saveName");
-    b.textContent = "Saved";
-    setTimeout(() => { b.textContent = "Save"; }, 1500);
-  });
+  const hasFriends = getFriends().length > 0;
 
-  // Invite a friend (share the app link + your code in one tap).
-  const invite = document.createElement("div");
-  invite.className = "invite-card";
-  invite.innerHTML = `
-    <div class="field-label">Invite a friend</div>
-    <p class="muted-note">Send them the app link and your code. They install it,
-    turn on sharing, and send their code back — then add it below.</p>
-    <button id="inviteBtn" class="primary-btn">Share app link &amp; code</button>
+  // 1) Friends list — the main thing, prominent at the top once you have any.
+  if (hasFriends) {
+    const heading = document.createElement("div");
+    heading.className = "section-title";
+    heading.textContent = "Your friends";
+    friendsBody.appendChild(heading);
+
+    const list = document.createElement("div");
+    list.className = "friend-list";
+    list.id = "friendList";
+    friendsBody.appendChild(list);
+    refreshFriendStats();
+  }
+
+  // 2) Invite / add controls — full size when you have no friends yet (so you
+  //    know how to start), compact footer once friends are listed above. Your
+  //    own code + name live in a collapsible disclosure to keep it tidy.
+  const share = document.createElement("div");
+  share.className = "share-section" + (hasFriends ? " compact" : "");
+  share.innerHTML = `
+    <div class="section-title">${hasFriends ? "Add or invite friends" : "Connect with a friend"}</div>
+    <div class="add-friend">
+      <div class="field-label">Add a friend's code</div>
+      <div class="code-row">
+        <input id="friendCode" class="text-input" type="text" maxlength="10"
+          placeholder="e.g. K7QF2M" autocapitalize="characters" autocomplete="off" />
+        <button id="addFriend" class="small-btn">Add</button>
+      </div>
+      <div id="addStatus" class="add-status"></div>
+    </div>
+    <button id="inviteBtn" class="${hasFriends ? "small-btn" : "primary-btn"}">Share app link &amp; code</button>
     <div id="inviteStatus" class="add-status"></div>
+    <details class="my-code"${hasFriends ? "" : " open"}>
+      <summary>Your share code &amp; name</summary>
+      <div class="field-label">Your share code</div>
+      <div class="code-row">
+        <span class="code" id="myCode">${acct.code || "…"}</span>
+        <button id="copyCode" class="small-btn">Copy</button>
+      </div>
+      <div class="field-label">Your name</div>
+      <div class="code-row">
+        <input id="nameInput" class="text-input" type="text" maxlength="40"
+          value="${escapeAttr(acct.name || "")}" placeholder="Your name" />
+        <button id="saveName" class="small-btn">Save</button>
+      </div>
+    </details>
   `;
-  friendsBody.appendChild(invite);
-  invite.querySelector("#inviteBtn").addEventListener("click", async () => {
-    const status = invite.querySelector("#inviteStatus");
+  friendsBody.appendChild(share);
+
+  // Add a friend's code.
+  share.querySelector("#addFriend").addEventListener("click", () =>
+    addFriend(share.querySelector("#friendCode").value, share.querySelector("#addStatus")));
+
+  // Share the app link + your code in one tap.
+  share.querySelector("#inviteBtn").addEventListener("click", async () => {
+    const status = share.querySelector("#inviteStatus");
     const text = inviteMessage(acct.code);
     if (navigator.share) {
       try {
@@ -676,29 +688,22 @@ function renderFriends() {
     }
   });
 
-  // Add a friend.
-  const add = document.createElement("div");
-  add.className = "add-friend";
-  add.innerHTML = `
-    <div class="field-label">Add a friend's code</div>
-    <div class="code-row">
-      <input id="friendCode" class="text-input" type="text" maxlength="10"
-        placeholder="e.g. K7QF2M" autocapitalize="characters" autocomplete="off" />
-      <button id="addFriend" class="small-btn">Add</button>
-    </div>
-    <div id="addStatus" class="add-status"></div>
-  `;
-  friendsBody.appendChild(add);
-  add.querySelector("#addFriend").addEventListener("click", () =>
-    addFriend(add.querySelector("#friendCode").value, add.querySelector("#addStatus")));
-
-  // Friends list (tap a friend to open a 1:1 encouragement chat).
-  const list = document.createElement("div");
-  list.className = "friend-list";
-  list.id = "friendList";
-  friendsBody.appendChild(list);
-
-  refreshFriendStats();
+  // Your code + name.
+  share.querySelector("#copyCode").addEventListener("click", () => {
+    if (!acct.code) return;
+    if (navigator.clipboard) navigator.clipboard.writeText(acct.code);
+    const b = share.querySelector("#copyCode");
+    b.textContent = "Copied";
+    setTimeout(() => { b.textContent = "Copy"; }, 1500);
+  });
+  share.querySelector("#saveName").addEventListener("click", () => {
+    acct.name = share.querySelector("#nameInput").value.trim();
+    setAccount(acct);
+    syncNow();
+    const b = share.querySelector("#saveName");
+    b.textContent = "Saved";
+    setTimeout(() => { b.textContent = "Save"; }, 1500);
+  });
 }
 
 async function addFriend(rawCode, statusEl) {
