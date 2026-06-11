@@ -208,7 +208,7 @@ function showRecents() {
 // over — through sunset amber into night (dark blue → black).
 const ROAD_STOPS = [
   { r: 0.0,  c: [0x22, 0xc5, 0x5e] }, // green  — fresh start
-  { r: 1.0,  c: [0xf5, 0xc5, 0x42] }, // gold   — goal reached (golden hour)
+  { r: 1.0,  c: [0xd4, 0xa0, 0x17] }, // gold   — goal reached (deep lush gold)
   { r: 1.15, c: [0xf9, 0x73, 0x16] }, // amber  — just over (sunset)
   { r: 1.4,  c: [0x1e, 0x3a, 0x8a] }, // dark blue — dusk
   { r: 1.9,  c: [0x0b, 0x0b, 0x16] }, // night  — well over

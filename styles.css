@@ -6,6 +6,8 @@
   --muted: #b3a8c4;
   --accent: #f97316;
   --accent-press: #ea580c;
+  --gold: #d4a017;   /* deep lush gold — calorie numbers + goal-reached road */
+  --forest: #2ea043; /* deep lush forest green — earned (exercise) calories */
   --over: #fb7185;
   --danger: #ef4444;
   --safe-top: env(safe-area-inset-top, 0px);
@@ -70,7 +72,7 @@ body {
   font-size: 48px;
   font-weight: 800;
   letter-spacing: -2px;
-  color: var(--accent);
+  color: var(--gold);
   line-height: 1;
 }
 .progress-wrap.over .total-num { color: #93b4ff; } /* moonlit blue when over */
@@ -92,7 +94,7 @@ body {
   transition: box-shadow 0.5s ease;
 }
 .progress-wrap.at-goal .road {
-  box-shadow: 0 0 16px rgba(245, 197, 66, 0.55);
+  box-shadow: 0 0 16px rgba(212, 160, 23, 0.6);
 }
 
 .road-fill {
@@ -102,7 +104,7 @@ body {
   bottom: 0;
   width: 0;
   border-radius: 999px;
-  background: linear-gradient(90deg, #22c55e, #f5c542);
+  background: linear-gradient(90deg, #22c55e, #d4a017);
   transition: width 0.5s ease, background 0.5s ease;
 }
 
@@ -164,7 +166,7 @@ body {
 .entry-kcal {
   font-size: 17px;
   font-weight: 700;
-  color: var(--accent);
+  color: var(--gold);
   white-space: nowrap;
 }
 
@@ -301,7 +303,7 @@ body {
 .ring-action:active .ring-action-icon { background: var(--surface-2); }
 
 /* Earned (exercise) rows */
-.entry-kcal.earned { color: #22c55e; }
+.entry-kcal.earned { color: var(--forest); }
 
 /* Add-food card — the first item in the day's list. */
 .add-card {
