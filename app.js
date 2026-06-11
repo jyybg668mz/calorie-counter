@@ -506,12 +506,17 @@ const FRIENDS_KEY = "cc:friends";     // [ "CODE1", "CODE2", ... ]
 const APP_URL = "https://jyybg668mz.github.io/calorie-counter/";
 
 // The message sent when inviting a friend: the app link so they can install
-// it, plus your code so they can follow you once they enable sharing.
+// it, plus your code so they can follow you once they enable sharing. The
+// install hint covers both phones, since it works the same on iPhone and
+// Android (no app store — it installs straight from the browser).
 function inviteMessage(code) {
+  const install =
+    "Open the link and install the free app — on iPhone tap Share → \"Add to " +
+    "Home Screen\"; on Android tap the menu (⋮) → \"Install app\".";
   return code
-    ? "Let's keep each other accountable on calories. Install the app, turn on " +
-      "sharing, and add my code " + code + " to follow my daily total:"
-    : "Let's keep each other accountable on calories. Install the app:";
+    ? "Let's keep each other accountable on calories. " + install +
+      " Then turn on sharing and add my code " + code + " to follow my daily total:"
+    : "Let's keep each other accountable on calories. " + install;
 }
 
 const friendsOverlay = document.getElementById("friendsOverlay");
