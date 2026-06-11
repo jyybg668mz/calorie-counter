@@ -120,6 +120,21 @@
     <div id="friendsBody" class="friends-body"></div>
   </div>
 
+  <!-- 1:1 encouragement chat -->
+  <div id="chatOverlay" class="overlay hidden">
+    <div class="overlay-head">
+      <button id="closeChat" class="ghost-btn" aria-label="Back">‹</button>
+      <div class="overlay-title" id="chatTitle">Friend</div>
+    </div>
+    <div id="chatMessages" class="chat-messages"></div>
+    <div id="chatNudges" class="chat-nudges"></div>
+    <div class="chat-input-row">
+      <input id="chatInput" class="text-input" type="text" maxlength="500"
+        placeholder="Write a message…" autocomplete="off" />
+      <button id="chatSend" class="small-btn">Send</button>
+    </div>
+  </div>
+
   <script src="app.js"></script>
 </body>
 </html>

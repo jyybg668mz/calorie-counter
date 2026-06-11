@@ -578,6 +578,14 @@ body {
   background: var(--surface);
   border-radius: 14px;
   padding: 14px 16px;
+  cursor: pointer;
+}
+.friend:active { background: var(--surface-2, rgba(255,255,255,0.06)); }
+.friend-go {
+  color: var(--muted);
+  font-size: 22px;
+  line-height: 1;
+  font-weight: 600;
 }
 .friend-info { flex: 1; min-width: 0; }
 .friend-name {
@@ -599,3 +607,66 @@ body {
   cursor: pointer;
 }
 .friends-empty { color: var(--muted); font-size: 14px; text-align: center; padding: 24px 0; }
+
+/* ---- 1:1 encouragement chat ---- */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  -webkit-overflow-scrolling: touch;
+}
+.chat-empty {
+  color: var(--muted);
+  font-size: 14px;
+  text-align: center;
+  margin: auto;
+  padding: 24px;
+}
+.bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 18px;
+  font-size: 15px;
+  line-height: 1.35;
+  word-wrap: break-word;
+  white-space: pre-wrap;
+}
+.bubble.mine {
+  align-self: flex-end;
+  background: var(--accent);
+  color: #fff;
+  border-bottom-right-radius: 6px;
+}
+.bubble.theirs {
+  align-self: flex-start;
+  background: var(--surface);
+  color: var(--text);
+  border-bottom-left-radius: 6px;
+}
+.chat-nudges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding: 8px 16px;
+}
+.nudge {
+  background: var(--surface);
+  border: 1px solid rgba(255,255,255,0.08);
+  color: var(--text);
+  border-radius: 999px;
+  padding: 7px 13px;
+  font-size: 14px;
+  cursor: pointer;
+}
+.nudge:active { background: var(--surface-2, rgba(255,255,255,0.06)); }
+.chat-input-row {
+  display: flex;
+  gap: 8px;
+  padding: 10px 16px calc(16px + env(safe-area-inset-bottom));
+  border-top: 1px solid rgba(255,255,255,0.08);
+  align-items: center;
+}
+.chat-input-row .text-input { flex: 1; }

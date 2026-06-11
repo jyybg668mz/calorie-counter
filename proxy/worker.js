@@ -7,8 +7,9 @@
 //      or in the browser.   Browser calls:  .../?query=banana
 //
 //   2. A tiny accountability sync under /share/* so friends can see each
-//      other's daily calorie total + streak via a short share code. It
-//      stores only a name, goal, and per-day totals in a KV namespace.
+//      other's daily calorie total + streak via a short share code, plus
+//      1:1 encouragement chat (/share/msg, /share/thread). It stores only a
+//      name, goal, per-day totals, and short chat threads in a KV namespace.
 //      Bind a KV namespace to this Worker with the variable name ACCOUNTS
 //      (Worker > Settings > Bindings). If it isn't bound, /share/* returns
 //      503 and the rest of the app keeps working.
@@ -136,6 +137,58 @@ async function handleShare(request, env, url, cors) {
     );
   }
 
+  // Send a 1:1 chat message to a friend. The userId authenticates the sender;
+  // the message is appended to the thread keyed by the two share codes.
+  if (url.pathname === "/share/msg" && request.method === "POST") {
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return json({ error: "bad json" }, 400, cors);
+    }
+    const userId = cleanId(body.userId);
+    if (!userId) return json({ error: "bad userId" }, 400, cors);
+    const toCode = cleanCode(body.toCode);
+    if (!toCode) return json({ error: "bad code" }, 400, cors);
+    const text = cleanText(body.text);
+    if (!text) return json({ error: "empty message" }, 400, cors);
+
+    const raw = await env.ACCOUNTS.get("user:" + userId);
+    if (!raw) return json({ error: "not set up" }, 403, cors);
+    const me = JSON.parse(raw);
+    if (me.code === toCode) return json({ error: "cannot message self" }, 400, cors);
+
+    const key = threadKey(me.code, toCode);
+    const traw = await env.ACCOUNTS.get(key);
+    const thread = traw ? JSON.parse(traw) : [];
+    thread.push({ from: me.code, name: me.name || "Friend", text, ts: Date.now() });
+    while (thread.length > 50) thread.shift(); // keep the last 50 only
+    await env.ACCOUNTS.put(key, JSON.stringify(thread));
+    return json({ ok: true, code: me.code, messages: thread }, 200, cors);
+  }
+
+  // Read the 1:1 thread between the caller and a friend. userId-authed, so
+  // only the two participants (each with their own secret id) can read it.
+  if (url.pathname === "/share/thread" && request.method === "POST") {
+    let body;
+    try {
+      body = await request.json();
+    } catch (e) {
+      return json({ error: "bad json" }, 400, cors);
+    }
+    const userId = cleanId(body.userId);
+    if (!userId) return json({ error: "bad userId" }, 400, cors);
+    const withCode = cleanCode(body.withCode);
+    if (!withCode) return json({ error: "bad code" }, 400, cors);
+
+    const raw = await env.ACCOUNTS.get("user:" + userId);
+    if (!raw) return json({ error: "not set up" }, 403, cors);
+    const me = JSON.parse(raw);
+
+    const traw = await env.ACCOUNTS.get(threadKey(me.code, withCode));
+    return json({ code: me.code, messages: traw ? JSON.parse(traw) : [] }, 200, cors);
+  }
+
   return json({ error: "not found" }, 404, cors);
 }
 
@@ -164,6 +217,20 @@ function cleanDate(v) {
 }
 function cleanCode(v) {
   return typeof v === "string" && /^[A-Z0-9]{4,10}$/.test(v) ? v : null;
+}
+// Chat message body: keep printable chars + newlines, trim, cap length.
+function cleanText(v) {
+  const s = typeof v === "string" ? v : "";
+  let out = "";
+  for (const ch of s) {
+    const c = ch.charCodeAt(0);
+    if (c >= 32 || c === 10) out += ch;
+  }
+  return out.trim().slice(0, 500);
+}
+// Stable thread key from the two share codes (order-independent).
+function threadKey(a, b) {
+  return "chat:" + (a < b ? a + ":" + b : b + ":" + a);
 }
 function clampNum(v, min, max, dflt) {
   const n = Number(v);

@@ -601,7 +601,7 @@ function renderFriends() {
     intro.innerHTML = `
       <p>Keep each other accountable. Turn on sharing to get a short code you
       can send to a friend — they'll see your daily calorie total and streak,
-      and you can add their code to see theirs.</p>
+      and you can cheer each other on.</p>
       <p class="muted-note">Only your name, daily total, goal, and streak are
       shared. Your food list stays private on your phone.</p>
       <label class="field-label">Your name</label>
@@ -692,7 +692,7 @@ function renderFriends() {
   add.querySelector("#addFriend").addEventListener("click", () =>
     addFriend(add.querySelector("#friendCode").value, add.querySelector("#addStatus")));
 
-  // Friends list.
+  // Friends list (tap a friend to open a 1:1 encouragement chat).
   const list = document.createElement("div");
   list.className = "friend-list";
   list.id = "friendList";
@@ -737,15 +737,22 @@ function refreshFriendStats() {
   for (const code of friends) {
     const row = document.createElement("div");
     row.className = "friend";
+    let friendName = "Friend";
     row.innerHTML = `
       <div class="friend-info">
         <div class="friend-name">…</div>
         <div class="friend-sub">Loading…</div>
       </div>
       <div class="friend-streak"></div>
+      <span class="friend-go" aria-hidden="true">›</span>
       <button class="friend-del" aria-label="Remove">&#10005;</button>
     `;
-    row.querySelector(".friend-del").addEventListener("click", () => removeFriend(code));
+    row.querySelector(".friend-del").addEventListener("click", (ev) => {
+      ev.stopPropagation();
+      removeFriend(code);
+    });
+    // Tap the row to open a 1:1 encouragement chat with this friend.
+    row.addEventListener("click", () => openChat(code, friendName));
     list.appendChild(row);
 
     peek(code).then((stat) => {
@@ -756,7 +763,8 @@ function refreshFriendStats() {
         subEl.textContent = "Not found";
         return;
       }
-      nameEl.textContent = stat.name || "Friend";
+      friendName = stat.name || "Friend";
+      nameEl.textContent = friendName;
       subEl.textContent =
         stat.total.toLocaleString() + " / " + stat.goal.toLocaleString() + " kcal";
       subEl.classList.toggle("over", stat.total > stat.goal);
@@ -767,6 +775,114 @@ function refreshFriendStats() {
     });
   }
 }
+
+// ---- 1:1 encouragement chat ----
+//
+// Tap a friend to open a private back-and-forth thread. Quick "nudge" buttons
+// send one-tap encouragement; the text box is there when you want to say more.
+// Threads live in the same Cloudflare KV as the share data (keyed by the two
+// share codes) and are userId-authed, so only the two of you can read them.
+const NUDGES = ["👏 Nice work!", "🔥 Keep it going!", "💪 You've got this!", "🎉 Proud of you!"];
+
+const chatOverlay = document.getElementById("chatOverlay");
+const chatMessages = document.getElementById("chatMessages");
+const chatNudges = document.getElementById("chatNudges");
+const chatInput = document.getElementById("chatInput");
+const chatTitle = document.getElementById("chatTitle");
+
+let chatCode = null;     // the friend's share code (the thread partner)
+let chatName = "Friend";
+let chatMyCode = null;   // my own share code, to tell my bubbles from theirs
+let chatPoll = null;     // interval id for refreshing the thread
+
+function openChat(code, name) {
+  const acct = getAccount();
+  if (!acct || !acct.code) return; // need to be opted in to chat
+  chatCode = code;
+  chatName = name || "Friend";
+  chatMyCode = acct.code;
+  chatTitle.textContent = chatName;
+  chatMessages.innerHTML = `<div class="chat-empty">Loading…</div>`;
+  renderNudges();
+  chatOverlay.classList.remove("hidden");
+  loadThread(true);
+  clearInterval(chatPoll);
+  chatPoll = setInterval(() => loadThread(false), 4000);
+}
+
+function closeChat() {
+  clearInterval(chatPoll);
+  chatPoll = null;
+  chatCode = null;
+  chatOverlay.classList.add("hidden");
+}
+
+function renderNudges() {
+  chatNudges.innerHTML = "";
+  for (const text of NUDGES) {
+    const b = document.createElement("button");
+    b.className = "nudge";
+    b.textContent = text;
+    b.addEventListener("click", () => sendChat(text));
+    chatNudges.appendChild(b);
+  }
+}
+
+async function loadThread(scroll) {
+  const acct = getAccount();
+  if (!acct || !chatCode) return;
+  try {
+    const res = await fetch(SYNC_API + "thread", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: acct.userId, withCode: chatCode }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.code) chatMyCode = data.code;
+    renderMessages(data.messages || [], scroll);
+  } catch (e) { /* offline — the poll will try again */ }
+}
+
+function renderMessages(msgs, scroll) {
+  if (!msgs.length) {
+    chatMessages.innerHTML =
+      `<div class="chat-empty">No messages yet. Send a little encouragement 👋</div>`;
+    return;
+  }
+  chatMessages.innerHTML = "";
+  for (const m of msgs) {
+    const b = document.createElement("div");
+    b.className = "bubble " + (m.from === chatMyCode ? "mine" : "theirs");
+    b.textContent = m.text;
+    chatMessages.appendChild(b);
+  }
+  if (scroll) chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+
+async function sendChat(text) {
+  const acct = getAccount();
+  text = (text || "").trim();
+  if (!acct || !chatCode || !text) return;
+  chatInput.value = "";
+  try {
+    const res = await fetch(SYNC_API + "msg", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ userId: acct.userId, toCode: chatCode, text }),
+    });
+    if (!res.ok) return;
+    const data = await res.json();
+    if (data.code) chatMyCode = data.code;
+    renderMessages(data.messages || [], true); // optimistic: server echoes the thread
+  } catch (e) { /* offline */ }
+}
+
+document.getElementById("closeChat").addEventListener("click", closeChat);
+document.getElementById("chatSend").addEventListener("click", () => sendChat(chatInput.value));
+chatInput.addEventListener("keydown", (e) => {
+  if (e.key === "Enter") { e.preventDefault(); sendChat(chatInput.value); }
+});
 
 // ---- Nutrition feedback (hand the day off to an AI coach) ----
 //
