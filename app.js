@@ -795,6 +795,23 @@ let chatName = "Friend";
 let chatMyCode = null;   // my own share code, to tell my bubbles from theirs
 let chatPoll = null;     // interval id for refreshing the thread
 
+// iOS doesn't resize a fixed/standalone PWA when the on-screen keyboard opens,
+// so the input row ends up hidden behind it. Follow visualViewport and shrink
+// the chat overlay to the visible area so the text box stays above the keyboard.
+function fitChatViewport() {
+  const vv = window.visualViewport;
+  if (!vv) return;
+  chatOverlay.style.top = vv.offsetTop + "px";
+  chatOverlay.style.height = vv.height + "px";
+  chatOverlay.style.bottom = "auto";
+  chatMessages.scrollTop = chatMessages.scrollHeight;
+}
+function clearChatViewport() {
+  chatOverlay.style.top = "";
+  chatOverlay.style.height = "";
+  chatOverlay.style.bottom = "";
+}
+
 function openChat(code, name) {
   const acct = getAccount();
   if (!acct || !acct.code) return; // need to be opted in to chat
@@ -808,12 +825,22 @@ function openChat(code, name) {
   loadThread(true);
   clearInterval(chatPoll);
   chatPoll = setInterval(() => loadThread(false), 4000);
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener("resize", fitChatViewport);
+    window.visualViewport.addEventListener("scroll", fitChatViewport);
+  }
 }
 
 function closeChat() {
   clearInterval(chatPoll);
   chatPoll = null;
   chatCode = null;
+  if (window.visualViewport) {
+    window.visualViewport.removeEventListener("resize", fitChatViewport);
+    window.visualViewport.removeEventListener("scroll", fitChatViewport);
+  }
+  clearChatViewport();
+  chatInput.blur();
   chatOverlay.classList.add("hidden");
 }
 
@@ -882,6 +909,12 @@ document.getElementById("closeChat").addEventListener("click", closeChat);
 document.getElementById("chatSend").addEventListener("click", () => sendChat(chatInput.value));
 chatInput.addEventListener("keydown", (e) => {
   if (e.key === "Enter") { e.preventDefault(); sendChat(chatInput.value); }
+});
+// When the field gains focus the keyboard is opening — snap the overlay to the
+// visible area (visualViewport's own resize can lag a frame on iOS).
+chatInput.addEventListener("focus", () => {
+  fitChatViewport();
+  setTimeout(fitChatViewport, 300); // again after the keyboard finishes animating
 });
 
 // ---- Nutrition feedback (hand the day off to an AI coach) ----
