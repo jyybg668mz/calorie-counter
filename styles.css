@@ -24,7 +24,7 @@ html, body {
 }
 
 body {
-  padding-bottom: calc(96px + var(--safe-bottom));
+  padding-bottom: calc(24px + var(--safe-bottom));
 }
 
 /* Top bar */
@@ -269,48 +269,75 @@ body {
 
 .sheet.onboarding .sheet-cancel { display: none; }
 
-/* Exercise mini-FAB, stacked above the food + button */
-.ex-fab {
-  position: fixed;
-  right: 26px;
-  bottom: calc(100px + var(--safe-bottom));
-  width: 52px;
-  height: 52px;
+/* Exercise button — sits beside the ring, since earned calories feed the
+   day's budget shown in the ring. */
+.ring-action {
+  position: absolute;
+  top: 50%;
+  left: calc(100% + 6px);
+  transform: translateY(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border: none;
+  padding: 2px;
+  color: var(--muted);
+  cursor: pointer;
+  font-family: inherit;
+}
+.ring-action-icon {
+  width: 46px;
+  height: 46px;
   border-radius: 50%;
   background: var(--surface);
   border: 1px solid var(--surface-2);
-  color: var(--text);
-  font-size: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 21px;
   line-height: 1;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.35);
-  cursor: pointer;
-  z-index: 6;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.3);
 }
-.ex-fab:active { background: var(--surface-2); }
+.ring-action-label { font-size: 11px; font-weight: 600; }
+.ring-action:active .ring-action-icon { background: var(--surface-2); }
 
 /* Earned (exercise) rows */
 .entry-kcal.earned { color: #22c55e; }
 
-/* Add button */
-.add-btn {
-  position: fixed;
-  right: 20px;
-  bottom: calc(24px + var(--safe-bottom));
-  width: 64px;
-  height: 64px;
+/* Add-food card — the first item in the day's list. */
+.add-card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  width: 100%;
+  background: var(--surface);
+  border: 1px dashed var(--surface-2);
+  border-radius: 14px;
+  padding: 14px 16px;
+  color: var(--text);
+  font-size: 16px;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  transition: background 0.1s;
+}
+.add-card:active { background: var(--surface-2); }
+.add-card-icon {
+  width: 30px;
+  height: 30px;
+  flex: none;
   border-radius: 50%;
-  border: none;
   background: var(--accent);
-  color: white;
-  font-size: 34px;
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 22px;
   font-weight: 300;
   line-height: 1;
-  box-shadow: 0 8px 24px rgba(249,115,22,0.45);
-  cursor: pointer;
-  z-index: 6;
-  transition: transform 0.1s, background 0.1s;
 }
-.add-btn:active { transform: scale(0.92); background: var(--accent-press); }
 
 .ghost-btn {
   background: none;

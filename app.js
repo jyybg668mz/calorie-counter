@@ -26,7 +26,6 @@ const searchInput = document.getElementById("searchInput");
 const searchResults = document.getElementById("searchResults");
 const searchStatus = document.getElementById("searchStatus");
 
-document.getElementById("addBtn").addEventListener("click", openSearch);
 document.getElementById("closeSearch").addEventListener("click", closeSearch);
 document.getElementById("prevDay").addEventListener("click", () => changeDay(-1));
 document.getElementById("nextDay").addEventListener("click", () => changeDay(1));
@@ -234,10 +233,22 @@ function render() {
   feedbackBar.classList.toggle("hidden", !hasAny);
 
   entryListEl.innerHTML = "";
+
+  // Add-food card always sits at the top of the day — the intuitive place to
+  // log something you ate.
+  const addCard = document.createElement("button");
+  addCard.className = "add-card";
+  addCard.innerHTML = `
+    <span class="add-card-icon">+</span>
+    <span class="add-card-text">Add food</span>
+  `;
+  addCard.addEventListener("click", openSearch);
+  entryListEl.appendChild(addCard);
+
   if (!hasAny) {
     const empty = document.createElement("div");
     empty.className = "empty";
-    empty.textContent = "No food logged yet. Tap + to add something you ate.";
+    empty.textContent = "Nothing logged yet — tap “Add food” to start.";
     entryListEl.appendChild(empty);
     return;
   }
